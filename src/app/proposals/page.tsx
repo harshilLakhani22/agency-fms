@@ -7,7 +7,7 @@ import { AddProposalDialog } from '@/components/features/AddProposalDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Eye, Reply, Send, ExternalLink, Zap, Trash2 } from 'lucide-react';
+import { Eye, Reply, Send, ExternalLink, Zap, Trash2, Sparkles } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 export default function ProposalsPage() {
@@ -178,7 +178,7 @@ export default function ProposalsPage() {
               </TableRow>
             ) : (
               filteredProposals.map((p) => (
-                <TableRow key={p.id} className="border-border/50 transition-colors hover:bg-muted/50 group">
+                <TableRow key={p.id} className={`border-border/50 transition-colors group ${p.isInvite ? 'bg-amber-500/5 hover:bg-amber-500/10' : 'hover:bg-muted/50'}`}>
                   <TableCell className="font-medium whitespace-nowrap">
                     {format(parseISO(p.date), 'MMM d, yyyy')}
                   </TableCell>
@@ -189,8 +189,16 @@ export default function ProposalsPage() {
                     </span>
                   </TableCell>
                   <TableCell className="font-mono text-muted-foreground">
-                    {p.connects + (p.boostConnects || 0)}
-                    {p.boostConnects ? <span className="text-xs text-[#14a800] ml-1">(+{p.boostConnects})</span> : null}
+                    {p.isInvite ? (
+                      <span className="inline-flex items-center gap-1 text-amber-500 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-md text-xs border border-amber-500/20">
+                        <Sparkles className="h-3 w-3" /> Invite
+                      </span>
+                    ) : (
+                      <>
+                        {p.connects + (p.boostConnects || 0)}
+                        {p.boostConnects ? <span className="text-xs text-[#14a800] ml-1">(+{p.boostConnects})</span> : null}
+                      </>
+                    )}
                   </TableCell>
                   <TableCell>
                     {getStatusBadge(p.status)}

@@ -14,6 +14,7 @@ import { Calendar as CalendarIcon, Send, Link as LinkIcon, Zap, Loader2, Sparkle
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useProposalStore } from '@/store/useProposalStore';
+import { toast } from 'sonner';
 
 export function AddProposalDialog() {
   const [open, setOpen] = useState(false);
@@ -59,12 +60,12 @@ export function AddProposalDialog() {
         userId: user.uid,
       });
 
-      alert("Proposal tracked successfully.");
+      toast.success("Proposal tracked successfully.");
       
       setOpen(false);
       resetForm();
     } catch (error) {
-      alert("Failed to add proposal. Please try again.");
+      toast.error("Failed to add proposal. Please try again.");
     } finally {
       setIsLoading(false);
     }
