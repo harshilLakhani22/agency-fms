@@ -12,8 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon, Link as LinkIcon, Zap, Loader2, Sparkles, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useProposalStore } from '@/store/useProposalStore';
-import { Proposal } from '@/types';
+import { useProposalStore, Proposal } from '@/store/useProposalStore';
 import { toast } from 'sonner';
 
 interface EditProposalDialogProps {
@@ -89,9 +88,7 @@ export function EditProposalDialog({ proposal, trigger }: EditProposalDialogProp
       setOpen(val);
       if (!val) resetForm();
     }}>
-      <DialogTrigger asChild>
-        {trigger}
-      </DialogTrigger>
+      <DialogTrigger render={trigger} />
       
       <DialogContent className="sm:max-w-[420px] bg-card/95 backdrop-blur-2xl border-blue-500/20 shadow-2xl rounded-3xl overflow-hidden p-0 gap-0">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/2" />
