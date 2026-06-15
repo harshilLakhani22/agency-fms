@@ -103,8 +103,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen overflow-hidden bg-background">
       <MobileHeader />
       <Sidebar />
-      <main className="flex-1 overflow-y-auto pt-16 pb-20 md:pt-0 md:pb-0 px-4 md:p-8">
-        <div className="mx-auto max-w-6xl mt-4 md:mt-0">
+      <main className="flex-1 overflow-y-auto pt-20 pb-20 px-4 md:p-8">
+        <div className="mx-auto max-w-6xl">
           {children}
         </div>
       </main>
