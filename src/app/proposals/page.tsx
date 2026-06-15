@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Eye, Reply, Send, ExternalLink, Zap, Trash2, Sparkles } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ProposalsPage() {
   const { user } = useAuth();
@@ -105,7 +106,7 @@ export default function ProposalsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold font-mono tracking-tight">{totalApplied}</div>
+            {isLoading ? <Skeleton className="h-9 w-16 bg-white/20" /> : <div className="text-3xl font-bold font-mono tracking-tight">{totalApplied}</div>}
           </CardContent>
         </Card>
 
@@ -119,8 +120,14 @@ export default function ProposalsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold font-mono tracking-tight">{totalViewed}</div>
-            <p className="text-xs text-zinc-400 mt-1">{totalApplied > 0 ? Math.round((totalViewed / totalApplied) * 100) : 0}% view rate</p>
+            {isLoading ? (
+              <div className="space-y-2"><Skeleton className="h-9 w-16 bg-white/20" /><Skeleton className="h-3 w-20 bg-white/10" /></div>
+            ) : (
+              <>
+                <div className="text-3xl font-bold font-mono tracking-tight">{totalViewed}</div>
+                <p className="text-xs text-zinc-400 mt-1">{totalApplied > 0 ? Math.round((totalViewed / totalApplied) * 100) : 0}% view rate</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -134,8 +141,14 @@ export default function ProposalsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold font-mono tracking-tight">{totalReplied}</div>
-            <p className="text-xs text-zinc-400 mt-1">{totalApplied > 0 ? Math.round((totalReplied / totalApplied) * 100) : 0}% reply rate</p>
+            {isLoading ? (
+              <div className="space-y-2"><Skeleton className="h-9 w-16 bg-white/20" /><Skeleton className="h-3 w-20 bg-white/10" /></div>
+            ) : (
+              <>
+                <div className="text-3xl font-bold font-mono tracking-tight">{totalReplied}</div>
+                <p className="text-xs text-zinc-400 mt-1">{totalApplied > 0 ? Math.round((totalReplied / totalApplied) * 100) : 0}% reply rate</p>
+              </>
+            )}
           </CardContent>
         </Card>
         
@@ -149,7 +162,7 @@ export default function ProposalsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold font-mono tracking-tight">{totalConnects}</div>
+            {isLoading ? <Skeleton className="h-9 w-16 bg-white/20" /> : <div className="text-3xl font-bold font-mono tracking-tight">{totalConnects}</div>}
           </CardContent>
         </Card>
       </div>
@@ -169,9 +182,18 @@ export default function ProposalsPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading proposals...</TableCell>
-              </TableRow>
+              <>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                  </TableRow>
+                ))}
+              </>
             ) : filteredProposals.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No proposals found.</TableCell>

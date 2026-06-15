@@ -8,6 +8,7 @@ import { AccountForm } from '@/components/features/AccountForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Landmark, CreditCard, Banknote, TrendingUp, Sparkles } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AccountsPage() {
   const { accounts, setAccounts, transactions, setLoading, isLoading } = useTransactionStore();
@@ -98,7 +99,7 @@ export default function AccountsPage() {
           <CardContent className="flex items-center justify-between gap-4">
             <div>
               <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                ₹{formatCurrency(totalBalance)}
+                {isLoading ? <Skeleton className="h-8 w-32 bg-white/20" /> : `₹${formatCurrency(totalBalance)}`}
               </h3>
               <p className="text-[11px] text-zinc-300 mt-1">
                 Across {accounts.length} active accounts
@@ -118,7 +119,7 @@ export default function AccountsPage() {
             <Landmark className="h-4 w-4 text-blue-500 shrink-0" />
           </CardHeader>
           <CardContent>
-            <h4 className="text-2xl font-bold text-foreground">₹{formatCurrency(statsByType.bank)}</h4>
+            {isLoading ? <Skeleton className="h-8 w-24" /> : <h4 className="text-2xl font-bold text-foreground">₹{formatCurrency(statsByType.bank)}</h4>}
             <p className="text-[11px] text-muted-foreground mt-1">Cash held in bank accounts</p>
           </CardContent>
         </Card>
@@ -130,7 +131,7 @@ export default function AccountsPage() {
             <Banknote className="h-4 w-4 text-emerald-500 shrink-0" />
           </CardHeader>
           <CardContent>
-            <h4 className="text-2xl font-bold text-foreground">₹{formatCurrency(statsByType.cash)}</h4>
+            {isLoading ? <Skeleton className="h-8 w-24" /> : <h4 className="text-2xl font-bold text-foreground">₹{formatCurrency(statsByType.cash)}</h4>}
             <p className="text-[11px] text-muted-foreground mt-1">Liquid on-hand currency</p>
           </CardContent>
         </Card>
@@ -139,7 +140,29 @@ export default function AccountsPage() {
       {/* Accounts List Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {isLoading ? (
-          <div className="text-muted-foreground col-span-full py-8">Loading accounts...</div>
+          <>
+            {[1, 2, 3].map(i => (
+              <Card key={i} className="relative overflow-hidden bg-card/50 shadow-sm border border-border/50 h-[210px] flex flex-col justify-between">
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2">
+                      <Skeleton className="h-6 w-32" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                    <Skeleton className="h-10 w-10 rounded-xl" />
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <Skeleton className="h-3 w-20 mb-2" />
+                  <Skeleton className="h-8 w-40" />
+                </CardContent>
+                <div className="h-10 border-t border-border/40 bg-muted/20 px-6 flex items-center justify-between">
+                  <Skeleton className="h-2.5 w-16" />
+                  <Skeleton className="h-2.5 w-16" />
+                </div>
+              </Card>
+            ))}
+          </>
         ) : accountBalances.length === 0 ? (
           <div className="text-muted-foreground col-span-full border-2 border-dashed rounded-xl p-12 text-center">
             <Landmark className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />

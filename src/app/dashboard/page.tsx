@@ -20,9 +20,10 @@ import {
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
-  const { transactions, setTransactions, accounts, setAccounts, setLoading } = useTransactionStore();
+  const { transactions, setTransactions, accounts, setAccounts, setLoading, isLoading } = useTransactionStore();
 
   useEffect(() => {
     setLoading(true);
@@ -141,7 +142,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${stats.totalBalance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-              ₹{formatCurrency(stats.totalBalance)}
+              {isLoading ? <Skeleton className="h-8 w-32 bg-emerald-400/20" /> : `₹${formatCurrency(stats.totalBalance)}`}
             </div>
             <p className="text-[11px] text-zinc-300 mt-1">Consolidated active balance</p>
           </CardContent>
@@ -159,7 +160,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              ₹{formatCurrency(stats.income)}
+              {isLoading ? <Skeleton className="h-8 w-32" /> : `₹${formatCurrency(stats.income)}`}
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">Total received deposits</p>
           </CardContent>
@@ -177,7 +178,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              ₹{formatCurrency(stats.expense)}
+              {isLoading ? <Skeleton className="h-8 w-32" /> : `₹${formatCurrency(stats.expense)}`}
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">Total recorded spendings</p>
           </CardContent>
@@ -248,42 +249,62 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3.5">
-              {transactions.slice(0, 5).map(t => (
-                <div key={t.id} className="flex items-center gap-3.5 border-b border-border/40 pb-3.5 last:border-0 last:pb-0 hover:bg-muted/10 p-1.5 -mx-1.5 rounded-xl transition-colors">
-                  {getTransactionIcon(t.type, t.category)}
-                  
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-foreground truncate">{t.description}</p>
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
-                      <span className="inline-flex items-center rounded-full bg-primary/10 text-primary dark:bg-primary/20 px-2 py-0.5 text-[10px] font-semibold border border-primary/20 whitespace-nowrap">
-                        {t.category}
-                      </span>
-                      <span className="text-[11px] text-muted-foreground font-medium truncate max-w-[150px] sm:max-w-none">
-                        {getAccountName(t.accountId)}
-                      </span>
-                      {t.addedByName && (
-                        <>
-                          <span className="text-[10px] text-muted-foreground/40">•</span>
-                          <span className="text-[10px] text-muted-foreground/60 italic whitespace-nowrap">
-                            by {t.addedByName}
-                          </span>
-                        </>
-                      )}
+              {isLoading ? (
+                <>
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="flex items-center gap-3.5 pb-3.5">
+                      <Skeleton className="h-10 w-10 rounded-xl" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-48" />
+                      </div>
+                      <div className="flex flex-col items-end space-y-2">
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-3 w-12" />
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="text-right shrink-0 flex flex-col items-end">
-                    <span className={`text-sm sm:text-base font-bold tracking-tight ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                      {t.type === 'income' ? '+' : '-'}₹{formatCurrency(t.amount)}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground/80 font-medium mt-0.5 whitespace-nowrap">
-                      {t.date}
-                    </span>
-                  </div>
-                </div>
-              ))}
-              {transactions.length === 0 && (
-                <div className="text-center text-sm py-4 text-muted-foreground">No transactions yet.</div>
+                  ))}
+                </>
+              ) : (
+                <>
+                  {transactions.slice(0, 5).map(t => (
+                    <div key={t.id} className="flex items-center gap-3.5 border-b border-border/40 pb-3.5 last:border-0 last:pb-0 hover:bg-muted/10 p-1.5 -mx-1.5 rounded-xl transition-colors">
+                      {getTransactionIcon(t.type, t.category)}
+                      
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-foreground truncate">{t.description}</p>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+                          <span className="inline-flex items-center rounded-full bg-primary/10 text-primary dark:bg-primary/20 px-2 py-0.5 text-[10px] font-semibold border border-primary/20 whitespace-nowrap">
+                            {t.category}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground font-medium truncate max-w-[150px] sm:max-w-none">
+                            {getAccountName(t.accountId)}
+                          </span>
+                          {t.addedByName && (
+                            <>
+                              <span className="text-[10px] text-muted-foreground/40">•</span>
+                              <span className="text-[10px] text-muted-foreground/60 italic whitespace-nowrap">
+                                by {t.addedByName}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="text-right shrink-0 flex flex-col items-end">
+                        <span className={`text-sm sm:text-base font-bold tracking-tight ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                          {t.type === 'income' ? '+' : '-'}₹{formatCurrency(t.amount)}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground/80 font-medium mt-0.5 whitespace-nowrap">
+                          {t.date}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  {transactions.length === 0 && (
+                    <div className="text-center text-sm py-4 text-muted-foreground">No transactions yet.</div>
+                  )}
+                </>
               )}
             </div>
           </CardContent>

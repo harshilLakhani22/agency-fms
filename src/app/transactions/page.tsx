@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Download, Trash2, Pencil } from 'lucide-react';
 import Papa from 'papaparse';
 import { formatCurrency } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function TransactionsPage() {
   const { transactions, setTransactions, accounts, setLoading, isLoading } = useTransactionStore();
@@ -127,9 +128,19 @@ export default function TransactionsPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading transactions...</TableCell>
-              </TableRow>
+              <>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24 ml-auto" /></TableCell>
+                    <TableCell><Skeleton className="h-8 w-16 ml-auto" /></TableCell>
+                  </TableRow>
+                ))}
+              </>
             ) : filteredTransactions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No transactions found.</TableCell>
@@ -176,7 +187,29 @@ export default function TransactionsPage() {
       {/* Mobile View: Cards */}
       <div className="md:hidden space-y-3 pb-20">
         {isLoading ? (
-          <div className="text-center py-8 text-muted-foreground text-sm">Loading transactions...</div>
+          <>
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-card border border-border/80 rounded-xl p-4 shadow-sm flex flex-col gap-3">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-4 w-16 rounded-full" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                    <Skeleton className="h-4 w-40" />
+                  </div>
+                  <Skeleton className="h-5 w-20" />
+                </div>
+                <div className="flex items-center justify-between pt-3 border-t border-border/40 mt-1">
+                  <div className="space-y-1">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-2 w-16" />
+                  </div>
+                  <Skeleton className="h-8 w-16" />
+                </div>
+              </div>
+            ))}
+          </>
         ) : filteredTransactions.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground text-sm">No transactions found.</div>
         ) : (
