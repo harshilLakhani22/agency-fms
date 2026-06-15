@@ -20,6 +20,7 @@ export interface Proposal {
   link: string;
   connects: number;
   boostConnects?: number;
+  isInvite?: boolean;
   account: 'Harshil' | 'Dhruvit';
   status: ProposalStatus;
   userId: string;

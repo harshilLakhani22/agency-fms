@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Send, Link as LinkIcon, Zap, Loader2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Send, Link as LinkIcon, Zap, Loader2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useProposalStore } from '@/store/useProposalStore';
@@ -21,6 +22,7 @@ export function AddProposalDialog() {
   const [link, setLink] = useState('');
   const [connects, setConnects] = useState('');
   const [boostConnects, setBoostConnects] = useState('');
+  const [isInvite, setIsInvite] = useState(false);
   const [account, setAccount] = useState<'Harshil' | 'Dhruvit'>('Harshil');
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
@@ -31,6 +33,7 @@ export function AddProposalDialog() {
     setLink('');
     setConnects('');
     setBoostConnects('');
+    setIsInvite(false);
     setAccount('Harshil');
     setDate(new Date().toISOString().split('T')[0]);
   };
@@ -38,14 +41,18 @@ export function AddProposalDialog() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (!link || !connects || !date) return;
+    if (!link || !date) return;
+    
+    // Connects must be 0 if invite, otherwise require connects
+    if (!isInvite && !connects) return;
 
     setIsLoading(true);
     try {
       await addProposal({
         link,
-        connects: Number(connects),
-        boostConnects: boostConnects ? Number(boostConnects) : 0,
+        connects: isInvite ? 0 : Number(connects),
+        boostConnects: isInvite ? 0 : (boostConnects ? Number(boostConnects) : 0),
+        isInvite,
         account,
         date,
         status: 'Applied',
@@ -113,9 +120,34 @@ export function AddProposalDialog() {
                 />
               </div>
             </div>
+            
+            {/* Invite Switch */}
+            <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/50 p-4 transition-all">
+              <div className="space-y-0.5">
+                <Label htmlFor="invite-mode" className="text-sm font-semibold flex items-center">
+                  <Sparkles className="w-4 h-4 text-amber-500 mr-2" />
+                  Received an Invite?
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Invites cost 0 connects.
+                </p>
+              </div>
+              <Switch
+                id="invite-mode"
+                checked={isInvite}
+                onCheckedChange={(checked) => {
+                  setIsInvite(checked);
+                  if (checked) {
+                    setConnects('');
+                    setBoostConnects('');
+                  }
+                }}
+                className="data-[state=checked]:bg-[#14a800]"
+              />
+            </div>
 
             {/* Connects and Boost Connects Row */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className={`grid grid-cols-2 gap-4 transition-all duration-300 ${isInvite ? 'opacity-50 pointer-events-none' : ''}`}>
               <div className="space-y-1.5">
                 <Label htmlFor="connects" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/90">Connects</Label>
                 <div className="relative flex items-center justify-center">
@@ -126,10 +158,11 @@ export function AddProposalDialog() {
                     id="connects" 
                     type="number" 
                     min="1"
-                    required 
-                    value={connects}
+                    required={!isInvite}
+                    value={isInvite ? '0' : connects}
                     onChange={(e) => setConnects(e.target.value)}
                     placeholder="0"
+                    disabled={isInvite}
                     className="text-left text-2xl font-bold h-14 rounded-xl bg-background/50 border-border/60 focus-visible:ring-[#14a800]/30 pl-10"
                   />
                 </div>
@@ -145,9 +178,10 @@ export function AddProposalDialog() {
                     id="boostConnects" 
                     type="number" 
                     min="0"
-                    value={boostConnects}
+                    value={isInvite ? '0' : boostConnects}
                     onChange={(e) => setBoostConnects(e.target.value)}
                     placeholder="0"
+                    disabled={isInvite}
                     className="text-left text-2xl font-bold h-14 rounded-xl bg-background/50 border-border/60 focus-visible:ring-[#14a800]/30 pl-10"
                   />
                 </div>
@@ -155,10 +189,18 @@ export function AddProposalDialog() {
             </div>
 
             {/* Total Connects Info */}
-            {(connects || boostConnects) && (
+            {((connects || boostConnects) && !isInvite) && (
               <div className="flex justify-end items-center -mt-2 pr-1">
                 <div className="text-xs font-semibold text-muted-foreground/80 bg-background/80 px-2.5 py-1 rounded-md border border-border/40">
                   Total Connects Used: <span className="text-[#14a800] font-bold text-sm ml-1">{Number(connects || 0) + Number(boostConnects || 0)}</span>
+                </div>
+              </div>
+            )}
+            
+            {isInvite && (
+              <div className="flex justify-end items-center -mt-2 pr-1">
+                <div className="text-xs font-semibold text-amber-500/90 bg-amber-500/10 px-2.5 py-1 rounded-md border border-amber-500/20">
+                  Total Connects Used: <span className="font-bold text-sm ml-1">0</span>
                 </div>
               </div>
             )}
@@ -221,7 +263,7 @@ export function AddProposalDialog() {
           <Button 
             type="submit" 
             form="proposal-form"
-            className="w-full rounded-xl h-12 text-sm font-bold tracking-wide transition-all duration-300 shadow-xl bg-[#14a800] hover:bg-[#14a800]/90 text-black shadow-[#14a800]/30 hover:shadow-[#14a800]/50"
+            className="w-full rounded-xl h-12 text-sm font-bold tracking-wide transition-all duration-300 shadow-xl bg-[#14a800] hover:bg-[#14a800]/90 text-white shadow-[#14a800]/30 hover:shadow-[#14a800]/50"
             disabled={isLoading}
           >
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
