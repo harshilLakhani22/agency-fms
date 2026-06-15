@@ -14,14 +14,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ProposalsPage() {
   const { user } = useAuth();
-  const { proposals, subscribe, isLoading, updateProposalStatus, deleteProposal } = useProposalStore();
+  const { proposals, isLoading, updateProposalStatus, deleteProposal } = useProposalStore();
   const [filterType, setFilterType] = useState<'all' | 'this_month' | 'last_7_days'>('all');
-
-  useEffect(() => {
-    if (!user) return;
-    const unsubscribe = subscribe(user.uid);
-    return () => unsubscribe();
-  }, [user, subscribe]);
 
   const filteredProposals = proposals.filter((p) => {
     if (filterType === 'all') return true;

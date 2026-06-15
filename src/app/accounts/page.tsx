@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useTransactionStore } from '@/store/useTransactionStore';
 import { AccountForm } from '@/components/features/AccountForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,26 +9,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AccountsPage() {
-  const { accounts, setAccounts, transactions, setLoading, isLoading } = useTransactionStore();
-
-  useEffect(() => {
-    setLoading(true);
-    const q = query(collection(db, 'accounts'), orderBy('createdAt', 'desc'));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as any[];
-      setAccounts(data);
-      setLoading(false);
-    }, (error) => {
-      console.error('Error fetching accounts:', error);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [setAccounts, setLoading]);
+  const { accounts, transactions, isLoading } = useTransactionStore();
 
   const accountBalances = useMemo(() => {
     return accounts.map(acc => {

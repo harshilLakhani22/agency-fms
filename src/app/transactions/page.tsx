@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import { deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useTransactionStore } from '@/store/useTransactionStore';
 import { TransactionActions } from '@/components/features/TransactionActions';
@@ -14,27 +14,8 @@ import { formatCurrency } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function TransactionsPage() {
-  const { transactions, setTransactions, accounts, setLoading, isLoading } = useTransactionStore();
+  const { transactions, accounts, isLoading } = useTransactionStore();
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
-
-  useEffect(() => {
-    setLoading(true);
-    const q = query(collection(db, 'transactions'), orderBy('date', 'desc'), orderBy('createdAt', 'desc'));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as any[];
-      setTransactions(data);
-      setLoading(false);
-    }, (error) => {
-      console.error('Error fetching transactions:', error);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [setTransactions, setLoading]);
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this transaction?')) {

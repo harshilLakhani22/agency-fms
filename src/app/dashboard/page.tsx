@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useTransactionStore } from '@/store/useTransactionStore';
 import { TransactionActions } from '@/components/features/TransactionActions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,29 +21,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
-  const { transactions, setTransactions, accounts, setAccounts, setLoading, isLoading } = useTransactionStore();
-
-  useEffect(() => {
-    setLoading(true);
-    const unsubTransactions = onSnapshot(query(collection(db, 'transactions'), orderBy('createdAt', 'desc')), (snapshot) => {
-      setTransactions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[]);
-      setLoading(false);
-    }, (error) => {
-      console.error('Error fetching transactions:', error);
-      setLoading(false);
-    });
-
-    const unsubAccounts = onSnapshot(query(collection(db, 'accounts'), orderBy('createdAt', 'desc')), (snapshot) => {
-      setAccounts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[]);
-    }, (error) => {
-      console.error('Error fetching accounts in dashboard:', error);
-    });
-
-    return () => {
-      unsubTransactions();
-      unsubAccounts();
-    };
-  }, [setTransactions, setAccounts, setLoading]);
+  const { transactions, accounts, isLoading } = useTransactionStore();
 
   // Calculations
   const stats = useMemo(() => {

@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 
 interface EditProposalDialogProps {
   proposal: Proposal;
-  trigger: React.ReactNode;
+  trigger: React.ReactElement;
 }
 
 export function EditProposalDialog({ proposal, trigger }: EditProposalDialogProps) {

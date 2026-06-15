@@ -9,6 +9,8 @@ import { useEffect } from 'react';
 import { Loader2, ShieldAlert, LogOut } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { useTransactionStore } from '@/store/useTransactionStore';
+import { useProposalStore } from '@/store/useProposalStore';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -23,6 +25,21 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       router.push('/login');
     }
   }, [user, loading, pathname, router]);
+
+  const subscribeTransactions = useTransactionStore(state => state.subscribe);
+  const subscribeProposals = useProposalStore(state => state.subscribe);
+
+  useEffect(() => {
+    if (!user || !isAuthorized) return;
+    
+    const unsubTransactions = subscribeTransactions();
+    const unsubProposals = subscribeProposals(user.uid);
+    
+    return () => {
+      unsubTransactions();
+      unsubProposals();
+    };
+  }, [user, isAuthorized, subscribeTransactions, subscribeProposals]);
 
   useEffect(() => {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
