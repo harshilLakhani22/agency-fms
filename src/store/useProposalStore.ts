@@ -59,12 +59,10 @@ export const useProposalStore = create<ProposalState>((set) => ({
             ...doc.data()
           })) as Proposal[];
         
-        // Filter in memory for security rules compatibility if needed,
-        // though it's better to add where('userId', '==', userId) to query.
-        // Assuming user acts globally or we filter here:
-        const userProposals = proposals.filter(p => p.userId === userId);
+        // We want all users in the agency to see all proposals.
+        // No filtering by userId.
         
-        set({ proposals: userProposals, isLoading: false, error: null });
+        set({ proposals, isLoading: false, error: null });
       },
       (error) => {
         console.error('Error fetching proposals:', error);
