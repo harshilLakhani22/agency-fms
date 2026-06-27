@@ -19,4 +19,7 @@ export interface Transaction {
   addedBy: string;
   addedByName: 'Harshil' | 'Dhruvit';
   createdAt: number;
+  isDeleted?: boolean;
+  deletedAt?: string;
+  updatedAt?: number;
 }

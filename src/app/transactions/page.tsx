@@ -1,26 +1,41 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { deleteDoc, doc } from 'firebase/firestore';
+import { deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useTransactionStore } from '@/store/useTransactionStore';
 import { TransactionActions } from '@/components/features/TransactionActions';
 import { EditTransactionDialog } from '@/components/features/EditTransactionDialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Download, Trash2, Pencil } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Calendar } from '@/components/ui/calendar';
+import { Download, Trash2, Pencil, Calendar as CalendarIcon, Filter, X, Check, LineChartIcon } from 'lucide-react';
 import Papa from 'papaparse';
 import { formatCurrency } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { format } from 'date-fns';
+import { DateRange } from 'react-day-picker';
+import { TransactionAnalytics } from '@/components/features/TransactionAnalytics';
 
 export default function TransactionsPage() {
-  const { transactions, accounts, isLoading } = useTransactionStore();
+  const { transactions, accounts, expenseCategories, incomeCategories, isLoading } = useTransactionStore();
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this transaction?')) {
       try {
-        await deleteDoc(doc(db, 'transactions', id));
+        await updateDoc(doc(db, 'transactions', id), { 
+          isDeleted: true, 
+          deletedAt: new Date().toISOString(),
+          updatedAt: Date.now()
+        });
       } catch (error) {
         console.error('Error deleting document:', error);
       }
@@ -52,16 +67,143 @@ export default function TransactionsPage() {
     document.body.removeChild(link);
   };
 
-  const filteredTransactions = transactions.filter(t => filterType === 'all' ? true : t.type === filterType);
+  const filteredTransactions = transactions.filter(t => {
+    const matchType = filterType === 'all' || t.type === filterType;
+    const matchCategory = selectedCategories.length === 0 || selectedCategories.includes(t.category);
+    
+    let matchDateRange = true;
+    if (dateRange?.from) {
+      const txDate = new Date(t.date);
+      // set hours to 0 to compare dates easily
+      txDate.setHours(0, 0, 0, 0);
+      
+      if (dateRange.to) {
+        matchDateRange = txDate >= dateRange.from && txDate <= dateRange.to;
+      } else {
+        matchDateRange = txDate >= dateRange.from;
+      }
+    }
+    
+    return matchType && matchCategory && matchDateRange;
+  });
+
+  const availableCategories = Array.from(new Set([
+    ...(filterType === 'all' || filterType === 'expense' ? expenseCategories : []),
+    ...(filterType === 'all' || filterType === 'income' ? incomeCategories : []),
+    ...transactions.map(t => t.category) // Include custom categories
+  ])).sort();
+
+  const activeDateFilterCount = dateRange?.from ? 1 : 0;
+  const activeCategoryFilterCount = selectedCategories.length;
+
+  const clearDateFilter = () => setDateRange(undefined);
+  const clearCategoryFilter = () => setSelectedCategories([]);
+  
+  const toggleCategory = (cat: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    );
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight text-foreground">Transactions</h1>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-          <Button variant="outline" onClick={handleExportCSV} className="bg-background text-foreground shadow-sm w-full sm:w-auto rounded-xl">
-            <Download className="mr-2 h-4 w-4" /> Export CSV
+          <Button variant="outline" onClick={() => setShowAnalytics(!showAnalytics)} className={`shadow-sm w-full sm:w-auto rounded-xl transition-colors ${showAnalytics ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20' : 'bg-background text-foreground'}`}>
+            <LineChartIcon className="mr-2 h-4 w-4" /> Analytics
           </Button>
+          <Button variant="outline" onClick={handleExportCSV} className="bg-background text-foreground shadow-sm w-full sm:w-auto rounded-xl">
+            <Download className="mr-2 h-4 w-4" /> Export
+          </Button>
+          
+          <Popover>
+            <PopoverTrigger render={<Button variant="outline" className="bg-background text-foreground shadow-sm w-full sm:w-auto rounded-xl relative" />}>
+              <CalendarIcon className="mr-2 h-4 w-4" /> 
+              {dateRange?.from ? (
+                dateRange.to ? (
+                  <>
+                    {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd")}
+                  </>
+                ) : (
+                  format(dateRange.from, "LLL dd")
+                )
+              ) : (
+                "Filter by Date"
+              )}
+              {activeDateFilterCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center">
+                  1
+                </span>
+              )}
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 rounded-2xl border-border/50 shadow-xl" align="end">
+              <Calendar
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={2}
+              />
+              {dateRange?.from && (
+                <div className="p-3 border-t border-border/50 flex justify-end">
+                  <Button variant="ghost" size="sm" onClick={clearDateFilter} className="text-xs text-muted-foreground hover:text-foreground">
+                    <X className="h-3 w-3 mr-1" /> Clear Date Filter
+                  </Button>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
+
+          <Popover>
+            <PopoverTrigger render={<Button variant="outline" className="bg-background text-foreground shadow-sm w-full sm:w-auto rounded-xl relative" />}>
+              <Filter className="mr-2 h-4 w-4" /> 
+              {selectedCategories.length > 0 ? `${selectedCategories.length} Categories` : "Filter by Category"}
+              {activeCategoryFilterCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center">
+                  {activeCategoryFilterCount}
+                </span>
+              )}
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-0 rounded-2xl border-border/50 shadow-xl" align="end">
+              <div className="p-4 border-b border-border/50 flex items-center justify-between">
+                <h4 className="font-semibold leading-none text-foreground">Categories</h4>
+                {selectedCategories.length > 0 && (
+                  <Button variant="ghost" size="sm" onClick={clearCategoryFilter} className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground">
+                    <X className="h-3 w-3 mr-1" /> Clear
+                  </Button>
+                )}
+              </div>
+              <div className="max-h-[300px] overflow-y-auto p-2">
+                {incomeCategories.length > 0 && (
+                  <div className="mb-4">
+                    <div className="px-2 py-1.5 text-xs font-semibold text-emerald-500 uppercase tracking-wider">Income</div>
+                    {incomeCategories.map(cat => (
+                      <label key={cat} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted/50 rounded-md cursor-pointer transition-colors" onClick={() => toggleCategory(cat)}>
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedCategories.includes(cat) ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground/30'}`}>
+                          {selectedCategories.includes(cat) && <Check className="w-3 h-3" />}
+                        </div>
+                        <span className="text-sm">{cat}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+                {expenseCategories.length > 0 && (
+                  <div>
+                    <div className="px-2 py-1.5 text-xs font-semibold text-rose-500 uppercase tracking-wider">Expense</div>
+                    {expenseCategories.map(cat => (
+                      <label key={cat} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted/50 rounded-md cursor-pointer transition-colors" onClick={() => toggleCategory(cat)}>
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedCategories.includes(cat) ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground/30'}`}>
+                          {selectedCategories.includes(cat) && <Check className="w-3 h-3" />}
+                        </div>
+                        <span className="text-sm">{cat}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
           <TransactionActions />
         </div>
       </div>
@@ -92,6 +234,12 @@ export default function TransactionsPage() {
           Expense
         </Button>
       </div>
+
+      {showAnalytics && (
+        <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+          <TransactionAnalytics transactions={filteredTransactions} />
+        </div>
+      )}
 
       {/* Desktop View: Table */}
       <div className="hidden md:block rounded-xl border bg-card shadow-sm overflow-hidden">

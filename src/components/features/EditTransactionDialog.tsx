@@ -105,6 +105,7 @@ export function EditTransactionDialog({ transaction, open: externalOpen, onOpenC
         category: finalCategory,
         description,
         addedByName,
+        updatedAt: Date.now(),
       });
       
       onOpenChange(false);

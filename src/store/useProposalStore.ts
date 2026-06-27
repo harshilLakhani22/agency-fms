@@ -25,6 +25,8 @@ export interface Proposal {
   status: ProposalStatus;
   userId: string;
   createdAt: number;
+  isDeleted?: boolean;
+  deletedAt?: string;
 }
 
 interface ProposalState {
@@ -53,16 +55,12 @@ export const useProposalStore = create<ProposalState>((set) => ({
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const proposals = snapshot.docs
-          .map((doc) => ({
-            id: doc.id,
-            ...doc.data()
-          })) as Proposal[];
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Proposal[];
         
         // We want all users in the agency to see all proposals.
         // No filtering by userId.
         
-        set({ proposals, isLoading: false, error: null });
+        set({ proposals: data.filter(p => !p.isDeleted), isLoading: false, error: null });
       },
       (error) => {
         console.error('Error fetching proposals:', error);
@@ -108,7 +106,10 @@ export const useProposalStore = create<ProposalState>((set) => ({
   deleteProposal: async (id: string) => {
     try {
       const docRef = doc(db, 'proposals', id);
-      await deleteDoc(docRef);
+      await updateDoc(docRef, { 
+        isDeleted: true, 
+        deletedAt: new Date().toISOString() 
+      });
     } catch (error: any) {
       console.error('Error deleting proposal:', error);
       throw error;

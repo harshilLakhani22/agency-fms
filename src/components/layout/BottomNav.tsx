@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ReceiptText, Landmark, Send } from 'lucide-react';
+import { LayoutDashboard, ReceiptText, Landmark, Send, Settings } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Accounts', href: '/accounts', icon: Landmark },
   { name: 'Transactions', href: '/transactions', icon: ReceiptText },
   { name: 'Proposals', href: '/proposals', icon: Send },
+  { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export function BottomNav() {

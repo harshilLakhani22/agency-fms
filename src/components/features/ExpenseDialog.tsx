@@ -16,7 +16,6 @@ import { cn } from '@/lib/utils';
 import { Loader2, ArrowDownCircle, CalendarIcon, IndianRupee } from 'lucide-react';
 import { addDoc as firestoreAddDoc, collection as firestoreCollection } from 'firebase/firestore';
 
-const EXPENSE_CATEGORIES = ['Office Supplies', 'Software Subscriptions', 'Salaries', 'Travel', 'Marketing'];
 
 const formatIndianNumber = (val: string) => {
   if (!val) return '';
@@ -45,14 +44,14 @@ export function ExpenseDialog({ open, onOpenChange, onSuccess }: ExpenseDialogPr
   const [description, setDescription] = useState('');
   const [addedByName, setAddedByName] = useState<'Harshil' | 'Dhruvit'>('Harshil');
 
-  const { accounts, transactions } = useTransactionStore();
+  const { accounts, transactions, expenseCategories } = useTransactionStore();
 
   const categories = useMemo(() => {
     const custom = transactions
       .filter(t => t.type === 'expense')
       .map(t => t.category);
-    return Array.from(new Set([...EXPENSE_CATEGORIES, ...custom]));
-  }, [transactions]);
+    return Array.from(new Set([...expenseCategories, ...custom]));
+  }, [transactions, expenseCategories]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +72,7 @@ export function ExpenseDialog({ open, onOpenChange, onSuccess }: ExpenseDialogPr
         addedBy: user.uid,
         addedByName,
         createdAt: Date.now(),
+        updatedAt: Date.now(),
       });
       
       onOpenChange(false);

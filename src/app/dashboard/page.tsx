@@ -21,7 +21,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
-  const { transactions, accounts, isLoading } = useTransactionStore();
+  const { transactions, allTransactions, accounts, isLoading } = useTransactionStore();
 
   // Calculations
   const stats = useMemo(() => {
@@ -57,6 +57,12 @@ export default function DashboardPage() {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
   }, [transactions]);
+
+  const recentTransactions = useMemo(() => {
+    return [...allTransactions]
+      .sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt))
+      .slice(0, 5);
+  }, [allTransactions]);
 
   const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#10b981'];
 
@@ -243,13 +249,18 @@ export default function DashboardPage() {
                 </>
               ) : (
                 <>
-                  {transactions.slice(0, 5).map(t => (
-                    <div key={t.id} className="flex items-center gap-3.5 border-b border-border/40 pb-3.5 last:border-0 last:pb-0 hover:bg-muted/10 p-1.5 -mx-1.5 rounded-xl transition-colors">
+                  {recentTransactions.map(t => (
+                    <div key={t.id} className={`flex items-center gap-3.5 border-b border-border/40 pb-3.5 last:border-0 last:pb-0 hover:bg-muted/10 p-1.5 -mx-1.5 rounded-xl transition-colors ${t.isDeleted ? 'opacity-60 grayscale' : ''}`}>
                       {getTransactionIcon(t.type, t.category)}
                       
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold text-foreground truncate">{t.description}</p>
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+                          {t.isDeleted && (
+                            <span className="inline-flex items-center rounded-full bg-rose-500/10 text-rose-500 px-2 py-0.5 text-[10px] font-bold border border-rose-500/20 whitespace-nowrap">
+                              DELETED
+                            </span>
+                          )}
                           <span className="inline-flex items-center rounded-full bg-primary/10 text-primary dark:bg-primary/20 px-2 py-0.5 text-[10px] font-semibold border border-primary/20 whitespace-nowrap">
                             {t.category}
                           </span>
@@ -277,8 +288,8 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   ))}
-                  {transactions.length === 0 && (
-                    <div className="text-center text-sm py-4 text-muted-foreground">No transactions yet.</div>
+                  {recentTransactions.length === 0 && (
+                    <div className="text-center text-sm py-4 text-muted-foreground">No recent activity.</div>
                   )}
                 </>
               )}
