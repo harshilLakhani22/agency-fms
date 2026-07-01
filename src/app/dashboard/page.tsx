@@ -17,32 +17,53 @@ import {
   HelpCircle 
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatAmount } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
-  const { transactions, allTransactions, accounts, isLoading } = useTransactionStore();
+  const { transactions, allTransactions, accounts, isLoading, currencySettings } = useTransactionStore();
 
-  // Calculations
-  const stats = useMemo(() => {
+  const { stats, usdStats } = useMemo(() => {
     let income = 0;
     let expense = 0;
+    let usdIncome = 0;
+    let usdExpense = 0;
     
     let totalInitialBalances = 0;
+    let totalUSDInitialBalances = 0;
+
     accounts.forEach(acc => {
-      totalInitialBalances += acc.initialBalance || 0;
+      if (acc.currency === 'USD') {
+        totalUSDInitialBalances += acc.initialBalance || 0;
+      } else {
+        totalInitialBalances += acc.initialBalance || 0;
+      }
     });
 
     transactions.forEach(t => {
-      if (t.type === 'income') income += t.amount;
-      if (t.type === 'expense') expense += t.amount;
+      const isUSD = t.currency === 'USD' || accounts.find(a => a.id === t.accountId)?.currency === 'USD';
+      if (isUSD) {
+        if (t.type === 'income') usdIncome += t.amount;
+        if (t.type === 'expense') usdExpense += t.amount;
+      } else {
+        if (t.type === 'income') income += t.amount;
+        if (t.type === 'expense') expense += t.amount;
+      }
     });
 
     return { 
-      income, 
-      expense, 
-      net: income - expense,
-      totalBalance: totalInitialBalances + income - expense 
+      stats: {
+        income, 
+        expense, 
+        net: income - expense,
+        totalBalance: totalInitialBalances + income - expense 
+      },
+      usdStats: {
+        income: usdIncome,
+        expense: usdExpense,
+        net: usdIncome - usdExpense,
+        totalBalance: totalUSDInitialBalances + usdIncome - usdExpense
+      }
     };
   }, [transactions, accounts]);
 
@@ -123,10 +144,32 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${stats.totalBalance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {isLoading ? <Skeleton className="h-8 w-32 bg-emerald-400/20" /> : `₹${formatCurrency(stats.totalBalance)}`}
-            </div>
-            <p className="text-[11px] text-zinc-300 mt-1">Consolidated active balance</p>
+            {isLoading ? (
+              <Skeleton className="h-10 w-40 bg-white/20" />
+            ) : (
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                  <span className="text-3xl font-extrabold tracking-tight text-emerald-400">
+                    {formatAmount(stats.totalBalance, 'INR')}
+                  </span>
+                  {usdStats.totalBalance > 0 && (
+                    <>
+                      <span className="text-white/50 hidden sm:block font-bold text-xl">+</span>
+                      <span className="text-2xl font-bold tracking-tight text-white">
+                        {formatAmount(usdStats.totalBalance, 'USD')}
+                      </span>
+                    </>
+                  )}
+                </div>
+                <div className="text-sm font-medium text-zinc-400 flex items-center gap-1.5 mt-1">
+                  <span>~</span>
+                  <span className="text-zinc-300">
+                    {formatAmount(stats.totalBalance + (usdStats.totalBalance * currencySettings.defaultExchangeRate), 'INR')}
+                  </span>
+                  <span className="text-xs text-zinc-500 uppercase tracking-wider ml-1">Approx Combined</span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -141,10 +184,17 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {isLoading ? <Skeleton className="h-8 w-32" /> : `₹${formatCurrency(stats.income)}`}
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">Total received deposits</p>
+            {isLoading ? (
+              <Skeleton className="h-10 w-32" />
+            ) : (
+              <div className="text-3xl font-extrabold tracking-tight text-foreground flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                <span>{formatAmount(stats.income, 'INR')}</span>
+                {usdStats.income > 0 && (
+                  <span className="text-xl sm:text-2xl text-emerald-500">+{formatAmount(usdStats.income, 'USD')}</span>
+                )}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">Total received deposits</p>
           </CardContent>
         </Card>
 
@@ -159,10 +209,17 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {isLoading ? <Skeleton className="h-8 w-32" /> : `₹${formatCurrency(stats.expense)}`}
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">Total recorded spendings</p>
+            {isLoading ? (
+              <Skeleton className="h-10 w-32" />
+            ) : (
+              <div className="text-3xl font-extrabold tracking-tight text-foreground flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                <span>{formatAmount(stats.expense, 'INR')}</span>
+                {usdStats.expense > 0 && (
+                  <span className="text-xl sm:text-2xl text-rose-500">+{formatAmount(usdStats.expense, 'USD')}</span>
+                )}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">Total recorded spendings</p>
           </CardContent>
         </Card>
       </div>
@@ -203,7 +260,7 @@ export default function DashboardPage() {
                 {/* List of categories with values and percentages below the chart */}
                 <div className="w-full grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 mt-4 pt-4 border-t border-border/40">
                   {expensesByCategory.map((entry, index) => {
-                    const percentage = (entry.value / stats.expense) * 100;
+                    const percentage = ((entry.value / stats.expense) * 100).toFixed(0);
                     const color = COLORS[index % COLORS.length];
                     return (
                       <div key={entry.name} className="flex items-center gap-2 text-xs bg-muted/30 px-2.5 py-1.5 rounded-lg border border-border/10">
@@ -211,7 +268,7 @@ export default function DashboardPage() {
                         <div className="min-w-0 flex-1">
                           <p className="font-medium text-foreground truncate">{entry.name}</p>
                           <p className="text-[10px] text-muted-foreground mt-0.5">
-                            <span className="font-semibold text-foreground/80">₹{formatCurrency(entry.value)}</span> ({percentage.toFixed(0)}%)
+                            <span className="font-semibold text-foreground/80">{formatAmount(entry.value, 'INR')}</span> ({percentage}%)
                           </p>
                         </div>
                       </div>
@@ -280,7 +337,7 @@ export default function DashboardPage() {
                       
                       <div className="text-right shrink-0 flex flex-col items-end">
                         <span className={`text-sm sm:text-base font-bold tracking-tight ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                          {t.type === 'income' ? '+' : '-'}₹{formatCurrency(t.amount)}
+                          {t.type === 'income' ? '+' : '-'}{formatAmount(t.amount, t.currency || 'INR')}
                         </span>
                         <span className="text-[11px] text-muted-foreground/80 font-medium mt-0.5 whitespace-nowrap">
                           {t.date}

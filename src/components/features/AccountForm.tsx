@@ -8,22 +8,24 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Landmark } from 'lucide-react';
-import { addDoc, collection, updateDoc, doc } from 'firebase/firestore';
+import { Loader2, Landmark, Trash2 } from 'lucide-react';
+import { addDoc, collection, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { Account } from '@/types';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface AccountFormProps {
   accountToEdit?: Account;
   trigger?: React.ReactNode;
 }
-
 export function AccountForm({ accountToEdit, trigger }: AccountFormProps) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   
   const [name, setName] = useState('');
   const [type, setType] = useState<'bank' | 'credit' | 'cash'>('bank');
+  const [currency, setCurrency] = useState<'INR' | 'USD'>('INR');
   const [initialBalance, setInitialBalance] = useState('');
   const [owner, setOwner] = useState<'Harshil' | 'Dhruvit'>('Harshil');
 
@@ -32,6 +34,7 @@ export function AccountForm({ accountToEdit, trigger }: AccountFormProps) {
     if (open) {
       setName(accountToEdit?.name ?? '');
       setType(accountToEdit?.type ?? 'bank');
+      setCurrency(accountToEdit?.currency ?? 'INR');
       setInitialBalance(accountToEdit?.initialBalance ? String(accountToEdit.initialBalance) : '');
       setOwner(accountToEdit?.owner ?? 'Harshil');
     }
@@ -48,6 +51,7 @@ export function AccountForm({ accountToEdit, trigger }: AccountFormProps) {
         await updateDoc(doc(db, 'accounts', accountToEdit.id), {
           name,
           type,
+          currency,
           initialBalance: parseFloat(initialBalance),
           owner,
         });
@@ -56,6 +60,7 @@ export function AccountForm({ accountToEdit, trigger }: AccountFormProps) {
         await addDoc(collection(db, 'accounts'), {
           name,
           type,
+          currency,
           initialBalance: parseFloat(initialBalance),
           addedBy: user.uid,
           owner,
@@ -69,10 +74,25 @@ export function AccountForm({ accountToEdit, trigger }: AccountFormProps) {
         setName('');
         setInitialBalance('');
         setType('bank');
+        setCurrency('INR');
         setOwner('Harshil');
       }
     } catch (error) {
       console.error('Error saving account: ', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!accountToEdit) return;
+    setLoading(true);
+    try {
+      await deleteDoc(doc(db, 'accounts', accountToEdit.id));
+      setDeleteConfirmOpen(false);
+      setOpen(false);
+    } catch (error) {
+      console.error('Error deleting account: ', error);
     } finally {
       setLoading(false);
     }
@@ -165,30 +185,73 @@ export function AccountForm({ accountToEdit, trigger }: AccountFormProps) {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="initialBalance" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/90">Initial Balance (₹)</Label>
-              <Input 
-                id="initialBalance" 
-                type="number" 
-                step="0.01" 
-                required 
-                value={initialBalance}
-                onChange={(e) => setInitialBalance(e.target.value)}
-                className="bg-background/50 h-14 rounded-xl text-lg font-bold border-border/60 focus-visible:ring-blue-500/30"
-                placeholder="0.00"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="currency" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/90">Currency</Label>
+                <Select required value={currency} onValueChange={(val: any) => setCurrency(val)}>
+                  <SelectTrigger className="bg-background/50 h-14 rounded-xl border-border/60 focus-visible:ring-blue-500/30">
+                    <SelectValue placeholder="Select currency">
+                      {(value) => value === 'USD' ? 'USD ($)' : 'INR (₹)'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-border/60 shadow-lg">
+                    <SelectItem value="INR">INR (₹)</SelectItem>
+                    <SelectItem value="USD">USD ($)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="initialBalance" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/90">
+                  Initial Balance ({currency === 'USD' ? '$' : '₹'})
+                </Label>
+                <Input 
+                  id="initialBalance" 
+                  type="number" 
+                  step="0.01" 
+                  required 
+                  value={initialBalance}
+                  onChange={(e) => setInitialBalance(e.target.value)}
+                  className="bg-background/50 h-14 rounded-xl text-lg font-bold border-border/60 focus-visible:ring-blue-500/30"
+                  placeholder="0.00"
+                />
+              </div>
             </div>
 
-            <div className="pt-2">
-              <Button type="submit" className="w-full h-14 rounded-xl font-bold text-base shadow-lg hover:shadow-xl bg-blue-600 hover:bg-blue-500 text-white transition-all hover:-translate-y-0.5" disabled={loading}>
+            <div className="pt-2 flex gap-3">
+              <Button type="submit" className="flex-1 h-14 rounded-xl font-bold text-base shadow-lg hover:shadow-xl bg-blue-600 hover:bg-blue-500 text-white transition-all hover:-translate-y-0.5" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
                 {accountToEdit ? 'Update Account' : 'Save Account'}
               </Button>
+              {accountToEdit && (
+                <Button 
+                  type="button" 
+                  variant="destructive" 
+                  className="h-14 w-14 rounded-xl shrink-0 shadow-lg"
+                  onClick={() => setDeleteConfirmOpen(true)}
+                  disabled={loading}
+                >
+                  <Trash2 className="h-5 w-5" />
+                </Button>
+              )}
             </div>
           </form>
         </div>
       </DialogContent>
       </Dialog>
+      
+      {accountToEdit && (
+        <ConfirmDialog
+          open={deleteConfirmOpen}
+          onOpenChange={setDeleteConfirmOpen}
+          title="Delete Account"
+          description={<>Are you sure you want to delete <strong>{accountToEdit.name}</strong>? This will not delete its transactions, but they will be orphaned.</>}
+          onConfirm={handleDelete}
+          isConfirming={loading}
+          variant="destructive"
+          confirmText="Delete"
+        />
+      )}
     </>
   );
 }

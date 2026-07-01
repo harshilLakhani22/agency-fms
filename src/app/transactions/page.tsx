@@ -107,18 +107,18 @@ export default function TransactionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight text-foreground">Transactions</h1>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-          <Button variant="outline" onClick={() => setShowAnalytics(!showAnalytics)} className={`shadow-sm w-full sm:w-auto rounded-xl transition-colors ${showAnalytics ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20' : 'bg-background text-foreground'}`}>
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 w-full xl:w-auto overflow-x-auto pb-1 sm:pb-0">
+          <Button variant="outline" onClick={() => setShowAnalytics(!showAnalytics)} className={`shrink-0 shadow-sm w-full md:w-auto rounded-xl transition-colors ${showAnalytics ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20' : 'bg-background text-foreground'}`}>
             <LineChartIcon className="mr-2 h-4 w-4" /> Analytics
           </Button>
-          <Button variant="outline" onClick={handleExportCSV} className="bg-background text-foreground shadow-sm w-full sm:w-auto rounded-xl">
+          <Button variant="outline" onClick={handleExportCSV} className="shrink-0 bg-background text-foreground shadow-sm w-full sm:w-auto rounded-xl">
             <Download className="mr-2 h-4 w-4" /> Export
           </Button>
           
           <Popover>
-            <PopoverTrigger render={<Button variant="outline" className="bg-background text-foreground shadow-sm w-full sm:w-auto rounded-xl relative" />}>
+            <PopoverTrigger render={<Button variant="outline" className="shrink-0 bg-background text-foreground shadow-sm w-full md:w-auto rounded-xl relative" />}>
               <CalendarIcon className="mr-2 h-4 w-4" /> 
               {dateRange?.from ? (
                 dateRange.to ? (
@@ -156,7 +156,7 @@ export default function TransactionsPage() {
           </Popover>
 
           <Popover>
-            <PopoverTrigger render={<Button variant="outline" className="bg-background text-foreground shadow-sm w-full sm:w-auto rounded-xl relative" />}>
+            <PopoverTrigger render={<Button variant="outline" className="shrink-0 bg-background text-foreground shadow-sm w-full md:w-auto rounded-xl relative" />}>
               <Filter className="mr-2 h-4 w-4" /> 
               {selectedCategories.length > 0 ? `${selectedCategories.length} Categories` : "Filter by Category"}
               {activeCategoryFilterCount > 0 && (

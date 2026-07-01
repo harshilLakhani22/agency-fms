@@ -60,12 +60,16 @@ export function IncomeDialog({ open, onOpenChange, onSuccess }: IncomeDialogProp
     const finalCategory = selectedCategory === 'custom' ? customCategory.trim() : selectedCategory;
     if (!finalCategory) return;
     
+    const selectedAcc = accounts.find(a => a.id === accountId);
+    const currency = selectedAcc?.currency || 'INR';
+
     setLoading(true);
     try {
       await firestoreAddDoc(firestoreCollection(db, 'transactions'), {
         type: 'income',
         accountId,
         amount: parseFloat(amount),
+        currency,
         date,
         category: finalCategory,
         description,
@@ -116,10 +120,12 @@ export function IncomeDialog({ open, onOpenChange, onSuccess }: IncomeDialogProp
             {/* Amount and Date Input Row */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="amount-income" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/90">Amount</Label>
+                <Label htmlFor="amount-income" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/90">
+                  Amount ({accounts.find(a => a.id === accountId)?.currency === 'USD' ? '$' : '₹'})
+                </Label>
                 <div className="relative flex items-center justify-center">
-                  <div className="absolute left-3 text-muted-foreground">
-                    <IndianRupee className="w-5 h-5" />
+                  <div className="absolute left-3 text-muted-foreground font-bold text-lg">
+                    {accounts.find(a => a.id === accountId)?.currency === 'USD' ? '$' : <IndianRupee className="w-5 h-5" />}
                   </div>
                   <Input 
                     id="amount-income" 

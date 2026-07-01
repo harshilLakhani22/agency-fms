@@ -2,6 +2,7 @@ export interface Account {
   id: string;
   name: string;
   type: 'bank' | 'credit' | 'cash';
+  currency?: 'INR' | 'USD';
   initialBalance: number;
   addedBy: string;
   owner: 'Harshil' | 'Dhruvit';
@@ -13,6 +14,7 @@ export interface Transaction {
   accountId: string;
   type: 'income' | 'expense';
   amount: number;
+  currency?: 'INR' | 'USD';
   date: string;
   category: string;
   description: string;
@@ -22,4 +24,10 @@ export interface Transaction {
   isDeleted?: boolean;
   deletedAt?: string;
   updatedAt?: number;
+  // Cross-currency transfer metadata
+  linkedTransactionId?: string;
+  exchangeRate?: number;
+  feePercent?: number;
+  feeAmount?: number;
+  originalAmount?: number;
 }

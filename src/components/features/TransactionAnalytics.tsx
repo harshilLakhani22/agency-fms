@@ -6,6 +6,7 @@ import {
 } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
+import { useTransactionStore } from '@/store/useTransactionStore';
 
 interface TransactionAnalyticsProps {
   transactions: Transaction[];
@@ -14,18 +15,27 @@ interface TransactionAnalyticsProps {
 const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9'];
 
 export function TransactionAnalytics({ transactions }: TransactionAnalyticsProps) {
+  const { currencySettings, accounts } = useTransactionStore();
+  const defaultRate = currencySettings.defaultExchangeRate || 85;
+
+  const normalizeAmount = (t: Transaction) => {
+    const isUSD = t.currency === 'USD' || accounts.find(a => a.id === t.accountId)?.currency === 'USD';
+    return isUSD ? t.amount * defaultRate : t.amount;
+  };
+
   // Process Data for Timeline and Net Flow
   const timelineData = useMemo(() => {
     // Group by date
     const grouped = transactions.reduce((acc, t) => {
       const dateStr = t.date; // YYYY-MM-DD
+      const normalizedAmount = normalizeAmount(t);
       if (!acc[dateStr]) {
         acc[dateStr] = { date: dateStr, income: 0, expense: 0, net: 0, parsedDate: parseISO(dateStr) };
       }
       if (t.type === 'income') {
-        acc[dateStr].income += t.amount;
+        acc[dateStr].income += normalizedAmount;
       } else {
-        acc[dateStr].expense += t.amount;
+        acc[dateStr].expense += normalizedAmount;
       }
       return acc;
     }, {} as Record<string, { date: string, income: number, expense: number, net: number, parsedDate: Date }>);
@@ -51,10 +61,11 @@ export function TransactionAnalytics({ transactions }: TransactionAnalyticsProps
     const incomes: Record<string, number> = {};
     
     transactions.forEach(t => {
+      const normalizedAmount = normalizeAmount(t);
       if (t.type === 'expense') {
-        expenses[t.category] = (expenses[t.category] || 0) + t.amount;
+        expenses[t.category] = (expenses[t.category] || 0) + normalizedAmount;
       } else {
-        incomes[t.category] = (incomes[t.category] || 0) + t.amount;
+        incomes[t.category] = (incomes[t.category] || 0) + normalizedAmount;
       }
     });
     

@@ -1,18 +1,24 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTransactionStore } from '@/store/useTransactionStore';
 import { AccountForm } from '@/components/features/AccountForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Landmark, CreditCard, Banknote, TrendingUp, Sparkles } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { CreditCard, Landmark, Banknote, Wallet, Plus, TrendingUp, Sparkles, Settings } from 'lucide-react';
+import { formatCurrency, formatAmount } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function AccountsPage() {
   const { accounts, transactions, isLoading } = useTransactionStore();
+  const [ownerFilter, setOwnerFilter] = useState<string>('All Owners');
 
   const accountBalances = useMemo(() => {
-    return accounts.map(acc => {
+    let filtered = accounts;
+    if (ownerFilter !== 'All Owners') {
+      filtered = filtered.filter(acc => acc.owner === ownerFilter);
+    }
+    return filtered.map(acc => {
       // Find all transactions for this account
       const accTransactions = transactions.filter(t => t.accountId === acc.id);
       
@@ -27,22 +33,34 @@ export default function AccountsPage() {
         currentBalance
       };
     });
-  }, [accounts, transactions]);
+  }, [accounts, transactions, ownerFilter]);
 
-  const totalBalance = useMemo(() => {
-    return accountBalances.reduce((sum, acc) => sum + acc.currentBalance, 0);
+  const { totalBalanceINR, totalBalanceUSD } = useMemo(() => {
+    let inr = 0;
+    let usd = 0;
+    accountBalances.forEach(acc => {
+      if (acc.currency === 'USD') {
+        usd += acc.currentBalance;
+      } else {
+        inr += acc.currentBalance;
+      }
+    });
+    return { totalBalanceINR: inr, totalBalanceUSD: usd };
   }, [accountBalances]);
 
   const statsByType = useMemo(() => {
-    let bank = 0;
-    let credit = 0;
-    let cash = 0;
+    let bankINR = 0;
+    let creditINR = 0;
+    let cashINR = 0;
     accountBalances.forEach(acc => {
-      if (acc.type === 'bank') bank += acc.currentBalance;
-      if (acc.type === 'credit') credit += acc.currentBalance;
-      if (acc.type === 'cash') cash += acc.currentBalance;
+      // For stats, we just show INR or convert. Let's just sum INR for now
+      if (acc.currency !== 'USD') {
+        if (acc.type === 'bank') bankINR += acc.currentBalance;
+        if (acc.type === 'credit') creditINR += acc.currentBalance;
+        if (acc.type === 'cash') cashINR += acc.currentBalance;
+      }
     });
-    return { bank, credit, cash };
+    return { bank: bankINR, credit: creditINR, cash: cashINR };
   }, [accountBalances]);
 
   const getIcon = (type: string) => {
@@ -63,6 +81,16 @@ export default function AccountsPage() {
           <p className="text-sm text-muted-foreground mt-1">Manage and track your balances across multiple institutions.</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <Select value={ownerFilter} onValueChange={(val: any) => setOwnerFilter(val)}>
+            <SelectTrigger className="w-[140px] bg-background">
+              <SelectValue placeholder="Filter by Owner" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All Owners">All Owners</SelectItem>
+              <SelectItem value="Harshil">Harshil</SelectItem>
+              <SelectItem value="Dhruvit">Dhruvit</SelectItem>
+            </SelectContent>
+          </Select>
           <AccountForm />
         </div>
       </div>
@@ -77,8 +105,20 @@ export default function AccountsPage() {
           </CardHeader>
           <CardContent className="flex items-center justify-between gap-4">
             <div>
-              <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                {isLoading ? <Skeleton className="h-8 w-32 bg-white/20" /> : `₹${formatCurrency(totalBalance)}`}
+              <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                {isLoading ? (
+                  <Skeleton className="h-8 w-32 bg-white/20" />
+                ) : (
+                  <>
+                    <span>{formatAmount(totalBalanceINR, 'INR')}</span>
+                    {totalBalanceUSD > 0 && (
+                      <>
+                        <Plus className="h-4 w-4 text-white/50 hidden sm:block" />
+                        <span className="text-xl sm:text-2xl text-emerald-400">{formatAmount(totalBalanceUSD, 'USD')}</span>
+                      </>
+                    )}
+                  </>
+                )}
               </h3>
               <p className="text-[11px] text-zinc-300 mt-1">
                 Across {accounts.length} active accounts
@@ -106,7 +146,7 @@ export default function AccountsPage() {
         {/* Cash Type Card */}
         <Card className="bg-card border border-border/80 shadow-sm">
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-mono">Physical Cash</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-mono">Physical Cash (INR)</p>
             <Banknote className="h-4 w-4 text-emerald-500 shrink-0" />
           </CardHeader>
           <CardContent>
@@ -213,8 +253,18 @@ export default function AccountsPage() {
                         )}
                       </div>
                     </div>
-                    <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 shadow-inner text-white group-hover:bg-white/20 transition-colors shrink-0">
-                      {getIcon(acc.type)}
+                    <div className="flex items-center gap-2">
+                      <AccountForm 
+                        accountToEdit={acc} 
+                        trigger={
+                          <div className="p-2 bg-white/10 backdrop-blur-md rounded-lg border border-white/20 shadow-inner text-white hover:bg-white/30 transition-colors cursor-pointer opacity-0 group-hover:opacity-100" title="Edit Account">
+                            <Settings className="h-4 w-4" />
+                          </div>
+                        } 
+                      />
+                      <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 shadow-inner text-white group-hover:bg-white/20 transition-colors shrink-0">
+                        {getIcon(acc.type)}
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
@@ -223,10 +273,10 @@ export default function AccountsPage() {
                 <CardContent className="pt-2 pb-4 relative z-10">
                   <p className="text-[9px] uppercase font-bold tracking-widest text-white/60 mb-0.5">Current Balance</p>
                   <div className="text-3xl font-extrabold tracking-tight text-white drop-shadow-sm">
-                    ₹{formatCurrency(acc.currentBalance)}
+                    {formatAmount(acc.currentBalance, acc.currency || 'INR')}
                   </div>
                   <div className="text-[11px] text-white/70 mt-1.5 flex justify-between items-center">
-                    <span>Initial Deposit: ₹{formatCurrency(acc.initialBalance)}</span>
+                    <span>Initial Deposit: {formatAmount(acc.initialBalance, acc.currency || 'INR')}</span>
                     <span className="bg-black/20 px-2 py-0.5 rounded-full text-[10px]">
                       {totalTxCount} {totalTxCount === 1 ? 'Transaction' : 'Transactions'}
                     </span>
@@ -237,11 +287,11 @@ export default function AccountsPage() {
                 <div className="border-t border-white/10 bg-black/15 px-6 py-3 relative z-10 flex items-center justify-between gap-4 text-[10px] font-semibold text-white/90">
                   <div className="flex items-center gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                    <span>In: +₹{formatCurrency(totalIncome)}</span>
+                    <span>In: +{formatAmount(totalIncome, acc.currency || 'INR')}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
-                    <span>Out: -₹{formatCurrency(totalExpense)}</span>
+                    <span>Out: -{formatAmount(totalExpense, acc.currency || 'INR')}</span>
                   </div>
                 </div>
               </Card>

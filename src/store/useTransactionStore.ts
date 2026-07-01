@@ -12,11 +12,13 @@ interface TransactionState {
   accounts: Account[];
   expenseCategories: string[];
   incomeCategories: string[];
+  currencySettings: { defaultExchangeRate: number; defaultFeePercent: number };
   isLoading: boolean;
   error: string | null;
   setTransactions: (transactions: Transaction[]) => void;
   setAccounts: (accounts: Account[]) => void;
   addTransaction: (transaction: Transaction) => void;
+  setCurrencySettings: (settings: { defaultExchangeRate: number; defaultFeePercent: number }) => void;
   setLoading: (isLoading: boolean) => void;
   setError: (error: string | null) => void;
   subscribe: () => () => void;
@@ -28,11 +30,13 @@ export const useTransactionStore = create<TransactionState>((set) => ({
   accounts: [],
   expenseCategories: [],
   incomeCategories: [],
+  currencySettings: { defaultExchangeRate: 85, defaultFeePercent: 1 },
   isLoading: true,
   error: null,
   setTransactions: (transactions) => set({ transactions }),
   setAccounts: (accounts) => set({ accounts }),
   addTransaction: (transaction) => set((state) => ({ transactions: [transaction, ...state.transactions] })),
+  setCurrencySettings: (settings) => set({ currencySettings: settings }),
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
   subscribe: () => {
@@ -97,6 +101,19 @@ export const useTransactionStore = create<TransactionState>((set) => ({
       }
     });
 
+    const currencyDocRef = doc(db, 'settings', 'currency');
+    const unsubCurrency = onSnapshot(currencyDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        set({
+          currencySettings: {
+            defaultExchangeRate: data.defaultExchangeRate ?? 85,
+            defaultFeePercent: data.defaultFeePercent ?? 1
+          }
+        });
+      }
+    });
+
     const unsubTransactions = onSnapshot(
       query(collection(db, 'transactions'), orderBy('date', 'desc'), orderBy('createdAt', 'desc')),
       (snapshot) => {
@@ -132,6 +149,7 @@ export const useTransactionStore = create<TransactionState>((set) => ({
       unsubTransactions();
       unsubAccounts();
       unsubCategories();
+      unsubCurrency();
     };
   }
 }));
