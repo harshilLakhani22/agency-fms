@@ -18,6 +18,10 @@ export function TransactionAnalytics({ transactions }: TransactionAnalyticsProps
   const { currencySettings, accounts } = useTransactionStore();
   const defaultRate = currencySettings.defaultExchangeRate || 85;
 
+  const analyticsTransactions = useMemo(() => {
+    return transactions.filter(t => t.category !== 'Currency Transfer' && t.category !== 'Internal Transfer');
+  }, [transactions]);
+
   const normalizeAmount = (t: Transaction) => {
     const isUSD = t.currency === 'USD' || accounts.find(a => a.id === t.accountId)?.currency === 'USD';
     return isUSD ? t.amount * defaultRate : t.amount;
@@ -26,7 +30,7 @@ export function TransactionAnalytics({ transactions }: TransactionAnalyticsProps
   // Process Data for Timeline and Net Flow
   const timelineData = useMemo(() => {
     // Group by date
-    const grouped = transactions.reduce((acc, t) => {
+    const grouped = analyticsTransactions.reduce((acc, t) => {
       const dateStr = t.date; // YYYY-MM-DD
       const normalizedAmount = normalizeAmount(t);
       if (!acc[dateStr]) {
@@ -53,14 +57,14 @@ export function TransactionAnalytics({ transactions }: TransactionAnalyticsProps
         netFlow: cumulativeNet
       };
     });
-  }, [transactions]);
+  }, [analyticsTransactions]);
 
   // Process Data for Category Breakdown
   const categoryData = useMemo(() => {
     const expenses: Record<string, number> = {};
     const incomes: Record<string, number> = {};
     
-    transactions.forEach(t => {
+    analyticsTransactions.forEach(t => {
       const normalizedAmount = normalizeAmount(t);
       if (t.type === 'expense') {
         expenses[t.category] = (expenses[t.category] || 0) + normalizedAmount;
@@ -73,9 +77,9 @@ export function TransactionAnalytics({ transactions }: TransactionAnalyticsProps
     const incomeData = Object.entries(incomes).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
     
     return { expenseData, incomeData };
-  }, [transactions]);
+  }, [analyticsTransactions]);
 
-  if (transactions.length === 0) {
+  if (analyticsTransactions.length === 0) {
     return (
       <div className="p-8 text-center text-muted-foreground border border-border/50 rounded-2xl bg-card/50">
         No transaction data available for the selected filters to display analytics.

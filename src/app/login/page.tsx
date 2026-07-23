@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
 
@@ -28,6 +30,24 @@ export default function LoginPage() {
       setError('Invalid email or password. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!email) {
+      setError('Please enter your email address to reset your password.');
+      return;
+    }
+    setResetLoading(true);
+    setError('');
+    
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast.success('Password reset email sent! Check your inbox.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to send reset email. Please try again.');
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -95,6 +115,14 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Password</Label>
+                  <button 
+                    type="button" 
+                    onClick={handleResetPassword}
+                    disabled={resetLoading}
+                    className="text-xs font-semibold text-[#14a800] hover:text-[#14a800]/80 transition-colors disabled:opacity-50"
+                  >
+                    {resetLoading ? 'Sending...' : 'Forgot password?'}
+                  </button>
                 </div>
                 <Input
                   id="password"

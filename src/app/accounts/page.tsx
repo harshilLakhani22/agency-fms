@@ -219,8 +219,11 @@ export default function AccountsPage() {
             let totalIncome = 0;
             let totalExpense = 0;
             accTx.forEach(t => {
-              if (t.type === 'income') totalIncome += t.amount;
-              if (t.type === 'expense') totalExpense += t.amount;
+              const isTransfer = t.category === 'Currency Transfer' || t.category === 'Internal Transfer';
+              if (!isTransfer) {
+                if (t.type === 'income') totalIncome += t.amount;
+                if (t.type === 'expense') totalExpense += t.amount;
+              }
             });
 
             return (

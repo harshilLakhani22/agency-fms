@@ -28,6 +28,11 @@ export default function DashboardPage() {
     let expense = 0;
     let usdIncome = 0;
     let usdExpense = 0;
+
+    let displayIncome = 0;
+    let displayExpense = 0;
+    let displayUsdIncome = 0;
+    let displayUsdExpense = 0;
     
     let totalInitialBalances = 0;
     let totalUSDInitialBalances = 0;
@@ -42,33 +47,47 @@ export default function DashboardPage() {
 
     transactions.forEach(t => {
       const isUSD = t.currency === 'USD' || accounts.find(a => a.id === t.accountId)?.currency === 'USD';
+      const isTransfer = t.category === 'Currency Transfer' || t.category === 'Internal Transfer';
+
       if (isUSD) {
-        if (t.type === 'income') usdIncome += t.amount;
-        if (t.type === 'expense') usdExpense += t.amount;
+        if (t.type === 'income') {
+          usdIncome += t.amount;
+          if (!isTransfer) displayUsdIncome += t.amount;
+        }
+        if (t.type === 'expense') {
+          usdExpense += t.amount;
+          if (!isTransfer) displayUsdExpense += t.amount;
+        }
       } else {
-        if (t.type === 'income') income += t.amount;
-        if (t.type === 'expense') expense += t.amount;
+        if (t.type === 'income') {
+          income += t.amount;
+          if (!isTransfer) displayIncome += t.amount;
+        }
+        if (t.type === 'expense') {
+          expense += t.amount;
+          if (!isTransfer) displayExpense += t.amount;
+        }
       }
     });
 
     return { 
       stats: {
-        income, 
-        expense, 
-        net: income - expense,
+        income: displayIncome, 
+        expense: displayExpense, 
+        net: displayIncome - displayExpense,
         totalBalance: totalInitialBalances + income - expense 
       },
       usdStats: {
-        income: usdIncome,
-        expense: usdExpense,
-        net: usdIncome - usdExpense,
+        income: displayUsdIncome,
+        expense: displayUsdExpense,
+        net: displayUsdIncome - displayUsdExpense,
         totalBalance: totalUSDInitialBalances + usdIncome - usdExpense
       }
     };
   }, [transactions, accounts]);
 
   const expensesByCategory = useMemo(() => {
-    const expenses = transactions.filter(t => t.type === 'expense');
+    const expenses = transactions.filter(t => t.type === 'expense' && t.category !== 'Currency Transfer' && t.category !== 'Internal Transfer');
     const grouped = expenses.reduce((acc, t) => {
       acc[t.category] = (acc[t.category] || 0) + t.amount;
       return acc;

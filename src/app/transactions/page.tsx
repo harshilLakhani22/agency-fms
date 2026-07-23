@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
 import { Download, Trash2, Pencil, Calendar as CalendarIcon, Filter, X, Check, LineChartIcon } from 'lucide-react';
 import Papa from 'papaparse';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatAmount } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
@@ -289,7 +289,7 @@ export default function TransactionsPage() {
                     {t.addedByName || 'Unknown'}
                   </TableCell>
                   <TableCell className={`text-right font-bold whitespace-nowrap ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-500' : 'text-rose-600 dark:text-rose-500'}`}>
-                    {t.type === 'income' ? '+' : '-'}₹{formatCurrency(t.amount)}
+                    {t.type === 'income' ? '+' : '-'}{formatAmount(t.amount, t.currency || 'INR')}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
@@ -355,7 +355,7 @@ export default function TransactionsPage() {
                   <p className="font-semibold text-foreground text-sm leading-tight">{t.description}</p>
                 </div>
                 <div className={`text-right font-bold shrink-0 ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-500' : 'text-rose-600 dark:text-rose-500'}`}>
-                  {t.type === 'income' ? '+' : '-'}₹{formatCurrency(t.amount)}
+                  {t.type === 'income' ? '+' : '-'}{formatAmount(t.amount, t.currency || 'INR')}
                 </div>
               </div>
               
