@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Landmark, Trash2 } from 'lucide-react';
-import { addDoc, collection, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { safeAddAccount, safeUpdateAccount, safeDeleteAccount } from '@/lib/safeOps';
 import { Account } from '@/types';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
@@ -48,7 +48,7 @@ export function AccountForm({ accountToEdit, trigger }: AccountFormProps) {
     try {
       if (accountToEdit) {
         // Edit mode
-        await updateDoc(doc(db, 'accounts', accountToEdit.id), {
+        await safeUpdateAccount(accountToEdit.id, {
           name,
           type,
           currency,
@@ -57,7 +57,7 @@ export function AccountForm({ accountToEdit, trigger }: AccountFormProps) {
         });
       } else {
         // Add mode
-        await addDoc(collection(db, 'accounts'), {
+        await safeAddAccount({
           name,
           type,
           currency,
@@ -88,7 +88,7 @@ export function AccountForm({ accountToEdit, trigger }: AccountFormProps) {
     if (!accountToEdit) return;
     setLoading(true);
     try {
-      await deleteDoc(doc(db, 'accounts', accountToEdit.id));
+      await safeDeleteAccount(accountToEdit.id);
       setDeleteConfirmOpen(false);
       setOpen(false);
     } catch (error) {

@@ -20,6 +20,7 @@ export interface Transaction {
   description: string;
   addedBy: string;
   addedByName: 'Harshil' | 'Dhruvit';
+  withdrawnBy?: 'Harshil' | 'Dhruvit';
   createdAt: number;
   isDeleted?: boolean;
   deletedAt?: string;

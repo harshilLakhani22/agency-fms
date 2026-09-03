@@ -12,12 +12,13 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const isNewApp = !getApps().length;
+const app = isNewApp ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 
 // Use initializeFirestore with experimentalForceLongPolling to prevent WebChannel timeout errors 
 // when the tab is idle or network fluctuates (which causes the terminal spam).
-const db = !getApps().length 
+const db = isNewApp 
   ? initializeFirestore(app, { experimentalForceLongPolling: true }) 
   : getFirestore(app);
 

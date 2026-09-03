@@ -14,7 +14,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Loader2, ArrowDownCircle, CalendarIcon, IndianRupee } from 'lucide-react';
-import { addDoc as firestoreAddDoc, collection as firestoreCollection } from 'firebase/firestore';
+import { safeAddTransaction } from '@/lib/safeOps';
 
 
 const formatIndianNumber = (val: string) => {
@@ -65,7 +65,7 @@ export function ExpenseDialog({ open, onOpenChange, onSuccess }: ExpenseDialogPr
 
     setLoading(true);
     try {
-      await firestoreAddDoc(firestoreCollection(db, 'transactions'), {
+      await safeAddTransaction({
         type: 'expense',
         accountId,
         amount: parseFloat(amount),
@@ -153,14 +153,16 @@ export function ExpenseDialog({ open, onOpenChange, onSuccess }: ExpenseDialogPr
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal bg-background/50 border-border/60 focus-visible:ring-rose-500/30 transition-all rounded-xl h-14",
+                          "w-full justify-start text-left font-normal bg-background/50 border-border/60 focus-visible:ring-rose-500/30 transition-all rounded-xl h-14 px-3",
                           !date && "text-muted-foreground"
                         )}
                       />
                     }
                   >
-                    <CalendarIcon className="mr-2 h-5 w-5" />
-                    <span className="text-base">{date ? format(new Date(date), "PPP") : "Pick a date"}</span>
+                    <CalendarIcon className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="text-sm font-medium truncate">
+                      {date ? format(new Date(date + 'T00:00:00'), "dd MMM yyyy") : "Pick a date"}
+                    </span>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 border-rose-500/20 shadow-xl rounded-xl" align="start">
                     <Calendar

@@ -19,7 +19,7 @@ export function TransactionAnalytics({ transactions }: TransactionAnalyticsProps
   const defaultRate = currencySettings.defaultExchangeRate || 85;
 
   const analyticsTransactions = useMemo(() => {
-    return transactions.filter(t => t.category !== 'Currency Transfer' && t.category !== 'Internal Transfer');
+    return transactions.filter(t => t.category !== 'Currency Transfer' && t.category !== 'Internal Transfer' && t.category !== 'Partner Withdrawal');
   }, [transactions]);
 
   const normalizeAmount = (t: Transaction) => {

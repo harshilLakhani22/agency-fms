@@ -3,15 +3,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTransactionStore } from '@/store/useTransactionStore';
 import { AccountForm } from '@/components/features/AccountForm';
+import { AccountTransactionsDialog } from '@/components/features/AccountTransactionsDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CreditCard, Landmark, Banknote, Wallet, Plus, TrendingUp, Sparkles, Settings } from 'lucide-react';
+import { CreditCard, Landmark, Banknote, Wallet, Plus, TrendingUp, Sparkles, Settings, ReceiptText, History, ArrowUpRight } from 'lucide-react';
 import { formatCurrency, formatAmount } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Account } from '@/types';
 
 export default function AccountsPage() {
   const { accounts, transactions, isLoading } = useTransactionStore();
   const [ownerFilter, setOwnerFilter] = useState<string>('All Owners');
+  const [selectedAccountForTx, setSelectedAccountForTx] = useState<Account | null>(null);
 
   const accountBalances = useMemo(() => {
     let filtered = accounts;
@@ -256,7 +259,14 @@ export default function AccountsPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setSelectedAccountForTx(acc)}
+                        className="p-2 bg-white/10 backdrop-blur-md rounded-lg border border-white/20 shadow-inner text-white hover:bg-white/30 transition-colors cursor-pointer"
+                        title="View Recent Transactions"
+                      >
+                        <ReceiptText className="h-4 w-4" />
+                      </button>
                       <AccountForm 
                         accountToEdit={acc} 
                         trigger={
@@ -280,28 +290,49 @@ export default function AccountsPage() {
                   </div>
                   <div className="text-[11px] text-white/70 mt-1.5 flex justify-between items-center">
                     <span>Initial Deposit: {formatAmount(acc.initialBalance, acc.currency || 'INR')}</span>
-                    <span className="bg-black/20 px-2 py-0.5 rounded-full text-[10px]">
-                      {totalTxCount} {totalTxCount === 1 ? 'Transaction' : 'Transactions'}
-                    </span>
+                    <button
+                      onClick={() => setSelectedAccountForTx(acc)}
+                      className="bg-black/30 hover:bg-black/50 transition-colors px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1 cursor-pointer border border-white/10"
+                      title="View transactions for this account"
+                    >
+                      <span>{totalTxCount} {totalTxCount === 1 ? 'Transaction' : 'Transactions'}</span>
+                      <ArrowUpRight className="h-2.5 w-2.5 opacity-70" />
+                    </button>
                   </div>
                 </CardContent>
 
-                {/* Mini Account Income/Expense breakdown */}
-                <div className="border-t border-white/10 bg-black/15 px-6 py-3 relative z-10 flex items-center justify-between gap-4 text-[10px] font-semibold text-white/90">
-                  <div className="flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                    <span>In: +{formatAmount(totalIncome, acc.currency || 'INR')}</span>
+                {/* Mini Account Income/Expense breakdown & History button */}
+                <div className="border-t border-white/10 bg-black/20 px-5 py-2.5 relative z-10 flex items-center justify-between gap-3 text-[10px] font-semibold text-white/90">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      <span>In: +{formatAmount(totalIncome, acc.currency || 'INR')}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
+                      <span>Out: -{formatAmount(totalExpense, acc.currency || 'INR')}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
-                    <span>Out: -{formatAmount(totalExpense, acc.currency || 'INR')}</span>
-                  </div>
+                  <button
+                    onClick={() => setSelectedAccountForTx(acc)}
+                    className="inline-flex items-center gap-1 text-[10px] font-bold text-white/90 hover:text-white bg-white/15 hover:bg-white/25 px-2.5 py-1 rounded-md transition-all cursor-pointer border border-white/10 shadow-xs shrink-0"
+                    title="View Recent Transactions"
+                  >
+                    <History className="h-3 w-3" />
+                    <span>History</span>
+                  </button>
                 </div>
               </Card>
             );
           })
         )}
       </div>
+
+      <AccountTransactionsDialog
+        account={selectedAccountForTx}
+        open={!!selectedAccountForTx}
+        onOpenChange={(open) => !open && setSelectedAccountForTx(null)}
+      />
     </div>
   );
 }

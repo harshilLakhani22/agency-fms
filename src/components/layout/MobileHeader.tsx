@@ -1,9 +1,14 @@
+'use client';
+
 import { Wallet, LogOut } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
+import { useSandboxStore } from '@/store/useSandboxStore';
 
 export function MobileHeader() {
+  const { isSandbox, toggleSandbox } = useSandboxStore();
+
   const handleLogout = () => {
     signOut(auth);
   };
@@ -17,7 +22,19 @@ export function MobileHeader() {
         <span className="text-lg font-semibold tracking-tight">FinTracker</span>
       </div>
       
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={toggleSandbox}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-colors cursor-pointer ${
+            isSandbox 
+              ? 'bg-amber-500/10 text-amber-500 border-amber-500/30' 
+              : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
+          }`}
+          title="Click to toggle sandbox mode"
+        >
+          <span className={`w-1.5 h-1.5 rounded-full ${isSandbox ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
+          {isSandbox ? 'Sandbox' : 'Live'}
+        </button>
         <ThemeToggle />
         <button
           onClick={handleLogout}

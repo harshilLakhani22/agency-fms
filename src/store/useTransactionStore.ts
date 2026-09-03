@@ -3,7 +3,7 @@ import { Transaction, Account } from '@/types';
 import { collection, query, orderBy, onSnapshot, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
-const DEFAULT_EXPENSE_CATEGORIES = ['Software Subscriptions', 'Salaries', 'Travel', 'Marketing', 'Office/Equipment', 'Internal Transfer', 'Review', 'Other Expense', 'Upwork Connects'];
+const DEFAULT_EXPENSE_CATEGORIES = ['Software Subscriptions', 'Salaries', 'Travel', 'Marketing', 'Office/Equipment', 'Internal Transfer', 'Review', 'Other Expense', 'Upwork Connects', 'Partner Withdrawal'];
 const DEFAULT_INCOME_CATEGORIES = ['Upwork Client', 'Consulting', 'Internal Transfer', 'Other Income'];
 
 interface TransactionState {
@@ -18,6 +18,11 @@ interface TransactionState {
   setTransactions: (transactions: Transaction[]) => void;
   setAccounts: (accounts: Account[]) => void;
   addTransaction: (transaction: Transaction) => void;
+  updateTransaction: (id: string, updates: Partial<Transaction>) => void;
+  softDeleteTransaction: (id: string) => void;
+  addAccount: (account: Account) => void;
+  updateAccount: (id: string, updates: Partial<Account>) => void;
+  deleteAccount: (id: string) => void;
   setCurrencySettings: (settings: { defaultExchangeRate: number; defaultFeePercent: number }) => void;
   setLoading: (isLoading: boolean) => void;
   setError: (error: string | null) => void;
@@ -35,7 +40,25 @@ export const useTransactionStore = create<TransactionState>((set) => ({
   error: null,
   setTransactions: (transactions) => set({ transactions }),
   setAccounts: (accounts) => set({ accounts }),
-  addTransaction: (transaction) => set((state) => ({ transactions: [transaction, ...state.transactions] })),
+  addTransaction: (transaction) => set((state) => ({ 
+    transactions: [transaction, ...state.transactions],
+    allTransactions: [transaction, ...state.allTransactions] 
+  })),
+  updateTransaction: (id, updates) => set((state) => ({
+    transactions: state.transactions.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+    allTransactions: state.allTransactions.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+  })),
+  softDeleteTransaction: (id) => set((state) => ({
+    transactions: state.transactions.filter((t) => t.id !== id),
+    allTransactions: state.allTransactions.map((t) => (t.id === id ? { ...t, isDeleted: true, deletedAt: new Date().toISOString() } : t)),
+  })),
+  addAccount: (account) => set((state) => ({ accounts: [account, ...state.accounts] })),
+  updateAccount: (id, updates) => set((state) => ({
+    accounts: state.accounts.map((a) => (a.id === id ? { ...a, ...updates } : a)),
+  })),
+  deleteAccount: (id) => set((state) => ({
+    accounts: state.accounts.filter((a) => a.id !== id),
+  })),
   setCurrencySettings: (settings) => set({ currencySettings: settings }),
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),

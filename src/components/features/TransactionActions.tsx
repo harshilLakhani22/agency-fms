@@ -2,15 +2,17 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowUpCircle, ArrowDownCircle, ArrowLeftRight } from 'lucide-react';
+import { ArrowUpCircle, ArrowDownCircle, ArrowLeftRight, ArrowDownLeft } from 'lucide-react';
 import { IncomeDialog } from './IncomeDialog';
 import { ExpenseDialog } from './ExpenseDialog';
 import { CrossCurrencyTransferDialog } from './CrossCurrencyTransferDialog';
+import { WithdrawalDialog } from './WithdrawalDialog';
 
 export function TransactionActions() {
   const [incomeOpen, setIncomeOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [withdrawalOpen, setWithdrawalOpen] = useState(false);
 
   return (
     <>
@@ -28,6 +30,12 @@ export function TransactionActions() {
           <ArrowDownCircle className="mr-2 h-4 w-4" /> Expense
         </Button>
         <Button 
+          className="shrink-0 shadow-sm bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium w-full md:w-auto" 
+          onClick={() => setWithdrawalOpen(true)}
+        >
+          <ArrowDownLeft className="mr-2 h-4 w-4" /> Withdraw
+        </Button>
+        <Button 
           className="shrink-0 shadow-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium w-full md:w-auto" 
           onClick={() => setTransferOpen(true)}
         >
@@ -37,6 +45,7 @@ export function TransactionActions() {
 
       <IncomeDialog open={incomeOpen} onOpenChange={setIncomeOpen} />
       <ExpenseDialog open={expenseOpen} onOpenChange={setExpenseOpen} />
+      <WithdrawalDialog open={withdrawalOpen} onOpenChange={setWithdrawalOpen} />
       <CrossCurrencyTransferDialog open={transferOpen} onOpenChange={setTransferOpen} />
     </>
   );

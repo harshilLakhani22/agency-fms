@@ -11,6 +11,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useTransactionStore } from '@/store/useTransactionStore';
 import { useProposalStore } from '@/store/useProposalStore';
+import { useSandboxStore } from '@/store/useSandboxStore';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -28,6 +29,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const subscribeTransactions = useTransactionStore(state => state.subscribe);
   const subscribeProposals = useProposalStore(state => state.subscribe);
+  const { isSandbox, toggleSandbox } = useSandboxStore();
 
   useEffect(() => {
     if (!user || !isAuthorized) return;
@@ -121,7 +123,33 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <MobileHeader />
       <Sidebar />
       <main className="flex-1 overflow-y-auto pt-20 pb-20 px-4 md:p-8">
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-6xl space-y-6">
+          {isSandbox && (
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 backdrop-blur-md px-4 py-3 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-600 dark:text-amber-400">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+                  <ShieldAlert className="h-4 w-4 text-amber-500" />
+                </div>
+                <div className="text-xs">
+                  <div className="font-bold flex items-center gap-2">
+                    <span>Sandbox Safe Mode Active</span>
+                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+                  </div>
+                  <p className="text-muted-foreground mt-0.5">
+                    Viewing real production data with <strong>all writes 100% isolated in memory</strong>. Testing will never modify your Firestore database.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                <button
+                  onClick={toggleSandbox}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-amber-500/30 bg-background/80 hover:bg-background text-foreground transition-all cursor-pointer shadow-sm"
+                >
+                  Switch to Live Mode
+                </button>
+              </div>
+            </div>
+          )}
           {children}
         </div>
       </main>

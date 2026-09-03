@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { safeSoftDeleteTransaction } from '@/lib/safeOps';
 import { useTransactionStore } from '@/store/useTransactionStore';
 import { TransactionActions } from '@/components/features/TransactionActions';
 import { EditTransactionDialog } from '@/components/features/EditTransactionDialog';
@@ -31,11 +30,7 @@ export default function TransactionsPage() {
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this transaction?')) {
       try {
-        await updateDoc(doc(db, 'transactions', id), { 
-          isDeleted: true, 
-          deletedAt: new Date().toISOString(),
-          updatedAt: Date.now()
-        });
+        await safeSoftDeleteTransaction(id);
       } catch (error) {
         console.error('Error deleting document:', error);
       }
@@ -281,14 +276,26 @@ export default function TransactionsPage() {
                   <TableCell className="text-muted-foreground">{getAccountName(t.accountId)}</TableCell>
                   <TableCell>{t.description}</TableCell>
                   <TableCell>
-                    <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-secondary text-secondary-foreground shadow-sm">
-                      {t.category}
-                    </span>
+                    {t.category === 'Partner Withdrawal' ? (
+                      <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-violet-500/10 text-violet-500 dark:bg-violet-500/20 border-violet-500/20 shadow-sm whitespace-nowrap">
+                        Withdrawal • {t.withdrawnBy || t.addedByName}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-secondary text-secondary-foreground shadow-sm">
+                        {t.category}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
                     {t.addedByName || 'Unknown'}
                   </TableCell>
-                  <TableCell className={`text-right font-bold whitespace-nowrap ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-500' : 'text-rose-600 dark:text-rose-500'}`}>
+                  <TableCell className={`text-right font-bold whitespace-nowrap ${
+                    t.category === 'Partner Withdrawal'
+                      ? 'text-violet-600 dark:text-violet-400'
+                      : t.type === 'income' 
+                        ? 'text-emerald-600 dark:text-emerald-500' 
+                        : 'text-rose-600 dark:text-rose-500'
+                  }`}>
                     {t.type === 'income' ? '+' : '-'}{formatAmount(t.amount, t.currency || 'INR')}
                   </TableCell>
                   <TableCell className="text-right">
@@ -347,14 +354,26 @@ export default function TransactionsPage() {
               <div className="flex justify-between items-start gap-2">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-secondary text-secondary-foreground shadow-sm">
-                      {t.category}
-                    </span>
+                    {t.category === 'Partner Withdrawal' ? (
+                      <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-violet-500/10 text-violet-500 dark:bg-violet-500/20 border-violet-500/20 shadow-sm whitespace-nowrap">
+                        Withdrawal • {t.withdrawnBy || t.addedByName}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-secondary text-secondary-foreground shadow-sm">
+                        {t.category}
+                      </span>
+                    )}
                     <span className="text-[11px] text-muted-foreground font-medium">{t.date}</span>
                   </div>
                   <p className="font-semibold text-foreground text-sm leading-tight">{t.description}</p>
                 </div>
-                <div className={`text-right font-bold shrink-0 ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-500' : 'text-rose-600 dark:text-rose-500'}`}>
+                <div className={`text-right font-bold shrink-0 ${
+                  t.category === 'Partner Withdrawal'
+                    ? 'text-violet-600 dark:text-violet-400'
+                    : t.type === 'income' 
+                      ? 'text-emerald-600 dark:text-emerald-500' 
+                      : 'text-rose-600 dark:text-rose-500'
+                }`}>
                   {t.type === 'income' ? '+' : '-'}{formatAmount(t.amount, t.currency || 'INR')}
                 </div>
               </div>

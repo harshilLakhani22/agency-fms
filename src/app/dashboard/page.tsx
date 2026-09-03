@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTransactionStore } from '@/store/useTransactionStore';
 import { TransactionActions } from '@/components/features/TransactionActions';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { 
   ArrowDownRight, 
   ArrowUpRight, 
+  ArrowDownLeft,
   IndianRupee, 
   Laptop, 
   Briefcase, 
@@ -14,14 +16,19 @@ import {
   Monitor, 
   ArrowLeftRight, 
   Eye, 
-  HelpCircle 
+  HelpCircle,
+  WalletCards,
+  Scale,
+  CheckCircle2
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { formatCurrency, formatAmount } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PartnerWithdrawalsDialog } from '@/components/features/PartnerWithdrawalsDialog';
 
 export default function DashboardPage() {
   const { transactions, allTransactions, accounts, isLoading, currencySettings } = useTransactionStore();
+  const [selectedPartnerForWithdrawals, setSelectedPartnerForWithdrawals] = useState<'Harshil' | 'Dhruvit' | null>(null);
 
   const { stats, usdStats } = useMemo(() => {
     let income = 0;
@@ -48,6 +55,7 @@ export default function DashboardPage() {
     transactions.forEach(t => {
       const isUSD = t.currency === 'USD' || accounts.find(a => a.id === t.accountId)?.currency === 'USD';
       const isTransfer = t.category === 'Currency Transfer' || t.category === 'Internal Transfer';
+      const isWithdrawal = t.category === 'Partner Withdrawal';
 
       if (isUSD) {
         if (t.type === 'income') {
@@ -56,7 +64,8 @@ export default function DashboardPage() {
         }
         if (t.type === 'expense') {
           usdExpense += t.amount;
-          if (!isTransfer) displayUsdExpense += t.amount;
+          // Option A: Exclude partner withdrawals from operational business expenses
+          if (!isTransfer && !isWithdrawal) displayUsdExpense += t.amount;
         }
       } else {
         if (t.type === 'income') {
@@ -65,7 +74,8 @@ export default function DashboardPage() {
         }
         if (t.type === 'expense') {
           expense += t.amount;
-          if (!isTransfer) displayExpense += t.amount;
+          // Option A: Exclude partner withdrawals from operational business expenses
+          if (!isTransfer && !isWithdrawal) displayExpense += t.amount;
         }
       }
     });
@@ -86,8 +96,54 @@ export default function DashboardPage() {
     };
   }, [transactions, accounts]);
 
+  const withdrawalData = useMemo(() => {
+    const withdrawalTxs = transactions.filter(t => t.category === 'Partner Withdrawal');
+
+    let harshilINR = 0;
+    let harshilUSD = 0;
+    let dhruvitINR = 0;
+    let dhruvitUSD = 0;
+
+    withdrawalTxs.forEach(t => {
+      const isUSD = t.currency === 'USD' || accounts.find(a => a.id === t.accountId)?.currency === 'USD';
+      const partner = t.withdrawnBy || t.addedByName || 'Harshil';
+      if (partner === 'Harshil') {
+        if (isUSD) harshilUSD += t.amount;
+        else harshilINR += t.amount;
+      } else {
+        if (isUSD) dhruvitUSD += t.amount;
+        else dhruvitINR += t.amount;
+      }
+    });
+
+    const rate = currencySettings?.defaultExchangeRate || 85;
+    const harshilCombined = harshilINR + (harshilUSD * rate);
+    const dhruvitCombined = dhruvitINR + (dhruvitUSD * rate);
+    const totalCombined = harshilCombined + dhruvitCombined;
+    const diff = Math.abs(harshilCombined - dhruvitCombined);
+    const leader = harshilCombined > dhruvitCombined ? 'Harshil' : dhruvitCombined > harshilCombined ? 'Dhruvit' : 'Equal';
+
+    const harshilPct = totalCombined > 0 ? Math.round((harshilCombined / totalCombined) * 100) : 50;
+    const dhruvitPct = totalCombined > 0 ? (100 - harshilPct) : 50;
+
+    return {
+      harshilINR,
+      harshilUSD,
+      harshilCombined,
+      dhruvitINR,
+      dhruvitUSD,
+      dhruvitCombined,
+      totalCombined,
+      diff,
+      leader,
+      harshilPct,
+      dhruvitPct,
+      count: withdrawalTxs.length,
+    };
+  }, [transactions, accounts, currencySettings]);
+
   const expensesByCategory = useMemo(() => {
-    const expenses = transactions.filter(t => t.type === 'expense' && t.category !== 'Currency Transfer' && t.category !== 'Internal Transfer');
+    const expenses = transactions.filter(t => t.type === 'expense' && t.category !== 'Currency Transfer' && t.category !== 'Internal Transfer' && t.category !== 'Partner Withdrawal');
     const grouped = expenses.reduce((acc, t) => {
       acc[t.category] = (acc[t.category] || 0) + t.amount;
       return acc;
@@ -127,15 +183,19 @@ export default function DashboardPage() {
       icon = <Monitor className={baseClass} />;
     } else if (cat.includes('transfer')) {
       icon = <ArrowLeftRight className={baseClass} />;
+    } else if (cat.includes('withdraw')) {
+      icon = <ArrowDownLeft className={baseClass} />;
     } else if (cat.includes('review')) {
       icon = <Eye className={baseClass} />;
     } else if (cat.includes('other')) {
       icon = <HelpCircle className={baseClass} />;
     }
     
-    const bgClass = type === 'income' 
-      ? 'bg-emerald-500/10 text-emerald-500 dark:bg-emerald-500/20' 
-      : 'bg-rose-500/10 text-rose-500 dark:bg-rose-500/20';
+    const bgClass = cat.includes('withdraw')
+      ? 'bg-violet-500/10 text-violet-500 dark:bg-violet-500/20'
+      : type === 'income' 
+        ? 'bg-emerald-500/10 text-emerald-500 dark:bg-emerald-500/20' 
+        : 'bg-rose-500/10 text-rose-500 dark:bg-rose-500/20';
        
     return (
       <div className={`p-2 sm:p-2.5 rounded-xl shrink-0 ${bgClass}`}>
@@ -238,7 +298,7 @@ export default function DashboardPage() {
                 )}
               </div>
             )}
-            <p className="text-xs text-muted-foreground mt-1">Total recorded spendings</p>
+            <p className="text-xs text-muted-foreground mt-1">Operational business spending</p>
           </CardContent>
         </Card>
       </div>
@@ -337,13 +397,19 @@ export default function DashboardPage() {
                               DELETED
                             </span>
                           )}
-                          <span className="inline-flex items-center rounded-full bg-primary/10 text-primary dark:bg-primary/20 px-2 py-0.5 text-[10px] font-semibold border border-primary/20 whitespace-nowrap">
-                            {t.category}
-                          </span>
+                          {t.category === 'Partner Withdrawal' ? (
+                            <span className="inline-flex items-center rounded-full bg-violet-500/10 text-violet-500 dark:bg-violet-400 px-2 py-0.5 text-[10px] font-semibold border border-violet-500/20 whitespace-nowrap">
+                              Withdrawal • {t.withdrawnBy || t.addedByName}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full bg-primary/10 text-primary dark:bg-primary/20 px-2 py-0.5 text-[10px] font-semibold border border-primary/20 whitespace-nowrap">
+                              {t.category}
+                            </span>
+                          )}
                           <span className="text-[11px] text-muted-foreground font-medium truncate max-w-[150px] sm:max-w-none">
                             {getAccountName(t.accountId)}
                           </span>
-                          {t.addedByName && (
+                          {t.addedByName && t.category !== 'Partner Withdrawal' && (
                             <>
                               <span className="text-[10px] text-muted-foreground/40">•</span>
                               <span className="text-[10px] text-muted-foreground/60 italic whitespace-nowrap">
@@ -355,7 +421,13 @@ export default function DashboardPage() {
                       </div>
                       
                       <div className="text-right shrink-0 flex flex-col items-end">
-                        <span className={`text-sm sm:text-base font-bold tracking-tight ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                        <span className={`text-sm sm:text-base font-bold tracking-tight ${
+                          t.category === 'Partner Withdrawal'
+                            ? 'text-violet-500 dark:text-violet-400'
+                            : t.type === 'income' 
+                              ? 'text-emerald-500' 
+                              : 'text-rose-500'
+                        }`}>
                           {t.type === 'income' ? '+' : '-'}{formatAmount(t.amount, t.currency || 'INR')}
                         </span>
                         <span className="text-[11px] text-muted-foreground/80 font-medium mt-0.5 whitespace-nowrap">
@@ -373,6 +445,108 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Minimized Partner Withdrawals Summary at Bottom */}
+      <Card className="border border-border/80 bg-card/60 shadow-xs overflow-hidden">
+        <CardContent className="p-4 sm:p-5">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            {/* Left: Summary Title & Total */}
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-violet-500/10 text-violet-500 rounded-xl border border-violet-500/20 shrink-0">
+                <WalletCards className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-foreground">Partner Withdrawals</span>
+                  <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full font-mono">
+                    All Time • {withdrawalData.count} {withdrawalData.count === 1 ? 'draw' : 'draws'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-lg font-extrabold text-foreground">
+                    {formatAmount(withdrawalData.totalCombined, 'INR')}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    ({withdrawalData.leader === 'Equal' ? '50/50 Equal' : `${withdrawalData.leader} is +${formatAmount(withdrawalData.diff, 'INR')}`})
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Harshil & Dhruvit Compact Cards with Details Buttons */}
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-3">
+              {/* Harshil */}
+              <div className="flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-muted/40 border border-border/60 min-w-[200px] flex-1 sm:flex-initial">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 shrink-0 shadow-xs" />
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-foreground">Harshil</span>
+                    </div>
+                    <div className="text-sm font-extrabold text-foreground mt-0.5">
+                      {formatAmount(withdrawalData.harshilCombined, 'INR')}
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSelectedPartnerForWithdrawals('Harshil')}
+                  className="h-7 px-2.5 text-xs font-bold text-indigo-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg cursor-pointer shrink-0"
+                >
+                  Details
+                </Button>
+              </div>
+
+              {/* Dhruvit */}
+              <div className="flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-muted/40 border border-border/60 min-w-[200px] flex-1 sm:flex-initial">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-fuchsia-500 shrink-0 shadow-xs" />
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-foreground">Dhruvit</span>
+                    </div>
+                    <div className="text-sm font-extrabold text-foreground mt-0.5">
+                      {formatAmount(withdrawalData.dhruvitCombined, 'INR')}
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSelectedPartnerForWithdrawals('Dhruvit')}
+                  className="h-7 px-2.5 text-xs font-bold text-fuchsia-500 hover:text-fuchsia-400 hover:bg-fuchsia-500/10 rounded-lg cursor-pointer shrink-0"
+                >
+                  Details
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Compact Proportion Bar */}
+          {withdrawalData.totalCombined > 0 && (
+            <div className="mt-3 pt-3 border-t border-border/30">
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden flex">
+                <div 
+                  className="bg-indigo-500 transition-all duration-300" 
+                  style={{ width: `${withdrawalData.harshilPct}%` }}
+                />
+                <div 
+                  className="bg-fuchsia-500 transition-all duration-300" 
+                  style={{ width: `${withdrawalData.dhruvitPct}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Partner Withdrawals Details Dialog */}
+      <PartnerWithdrawalsDialog
+        partner={selectedPartnerForWithdrawals}
+        open={!!selectedPartnerForWithdrawals}
+        onOpenChange={(open) => !open && setSelectedPartnerForWithdrawals(null)}
+      />
     </div>
   );
 }

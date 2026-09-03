@@ -14,7 +14,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn, formatAmount } from '@/lib/utils';
 import { Loader2, ArrowLeftRight, CalendarIcon, DollarSign, IndianRupee } from 'lucide-react';
-import { doc, writeBatch, collection } from 'firebase/firestore';
+import { safeAddTransfer } from '@/lib/safeOps';
 
 export function CrossCurrencyTransferDialog({ open, onOpenChange, onSuccess }: { open: boolean, onOpenChange: (open: boolean) => void, onSuccess?: () => void }) {
   const { user } = useAuth();
@@ -43,53 +43,44 @@ export function CrossCurrencyTransferDialog({ open, onOpenChange, onSuccess }: {
     
     setLoading(true);
     try {
-      const batch = writeBatch(db);
-      
-      const expenseRef = doc(collection(db, 'transactions'));
-      const incomeRef = doc(collection(db, 'transactions'));
       const timestamp = Date.now();
 
-      // 1. Expense from USD account
-      batch.set(expenseRef, {
-        accountId: sourceAccountId,
-        type: 'expense',
-        amount: parsedUSD,
-        currency: 'USD',
-        date,
-        category: 'Currency Transfer',
-        description: description || 'Transfer to INR',
-        addedBy: user.uid,
-        addedByName,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-        linkedTransactionId: incomeRef.id,
-        exchangeRate: effectiveExchangeRate,
-        feePercent: 0,
-        feeAmount: 0,
-        originalAmount: parsedUSD,
-      });
-
-      // 2. Income to INR account
-      batch.set(incomeRef, {
-        accountId: destAccountId,
-        type: 'income',
-        amount: parsedINR,
-        currency: 'INR',
-        date,
-        category: 'Currency Transfer',
-        description: description || 'Transfer from USD',
-        addedBy: user.uid,
-        addedByName,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-        linkedTransactionId: expenseRef.id,
-        exchangeRate: effectiveExchangeRate,
-        feePercent: 0,
-        feeAmount: 0,
-        originalAmount: parsedUSD,
-      });
-
-      await batch.commit();
+      await safeAddTransfer(
+        {
+          accountId: sourceAccountId,
+          type: 'expense',
+          amount: parsedUSD,
+          currency: 'USD',
+          date,
+          category: 'Currency Transfer',
+          description: description || 'Transfer to INR',
+          addedBy: user.uid,
+          addedByName,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          exchangeRate: effectiveExchangeRate,
+          feePercent: 0,
+          feeAmount: 0,
+          originalAmount: parsedUSD,
+        },
+        {
+          accountId: destAccountId,
+          type: 'income',
+          amount: parsedINR,
+          currency: 'INR',
+          date,
+          category: 'Currency Transfer',
+          description: description || 'Transfer from USD',
+          addedBy: user.uid,
+          addedByName,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          exchangeRate: effectiveExchangeRate,
+          feePercent: 0,
+          feeAmount: 0,
+          originalAmount: parsedUSD,
+        }
+      );
       
       onOpenChange(false);
       setGrossAmount('');

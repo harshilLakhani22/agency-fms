@@ -14,7 +14,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Loader2, CalendarIcon, IndianRupee, Pencil } from 'lucide-react';
-import { updateDoc, doc } from 'firebase/firestore';
+import { safeUpdateTransaction } from '@/lib/safeOps';
 import { Transaction } from '@/types';
 
 const formatIndianNumber = (val: string) => {
@@ -27,7 +27,7 @@ const formatIndianNumber = (val: string) => {
 };
 
 const INCOME_CATEGORIES = ['Upwork Client', 'Consulting', 'Other Income'];
-const EXPENSE_CATEGORIES = ['Software Subscriptions', 'Upwork Connects', 'Office/Equipment', 'Other Expense'];
+const EXPENSE_CATEGORIES = ['Software Subscriptions', 'Upwork Connects', 'Office/Equipment', 'Partner Withdrawal', 'Other Expense'];
 
 interface EditTransactionDialogProps {
   transaction: Transaction;
@@ -98,7 +98,7 @@ export function EditTransactionDialog({ transaction, open: externalOpen, onOpenC
     
     setLoading(true);
     try {
-      await updateDoc(doc(db, 'transactions', transaction.id), {
+      const updateData: any = {
         accountId,
         amount: parseFloat(amount),
         date,
@@ -106,7 +106,11 @@ export function EditTransactionDialog({ transaction, open: externalOpen, onOpenC
         description,
         addedByName,
         updatedAt: Date.now(),
-      });
+      };
+      if (finalCategory === 'Partner Withdrawal') {
+        updateData.withdrawnBy = addedByName;
+      }
+      await safeUpdateTransaction(transaction.id, updateData);
       
       onOpenChange(false);
       if (onSuccess) onSuccess();
